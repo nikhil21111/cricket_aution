@@ -1,0 +1,475 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #101e22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #283539;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3b4e54;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 120;
+}
+
+.fireworks-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  overflow: hidden;
+}
+
+.celebration-card {
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(13, 185, 242, 0.25),
+    rgba(11, 17, 19, 0.9)
+  );
+  border: 1px solid rgba(13, 185, 242, 0.35);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.8),
+    0 0 25px rgba(13, 185, 242, 0.25);
+  color: #e6f9ff;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.celebration-title {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0db9f2;
+  margin-bottom: 4px;
+}
+
+.celebration-subtitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: #e8f8ff;
+}
+
+.duck-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 120;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.duck-overlay .duck-scene {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  --color-yellow: #ffed02;
+  --color-light-orange-1: #fece00;
+  --color-light-orange-2: #fcaa1d;
+  --color-orange: #f57a00;
+  --color-blue-1: #48befd;
+  --color-blue-2: #3ba5f1;
+  --duck-speed: 1s;
+  --duck-speed-half: calc(var(--duck-speed) / 2);
+}
+
+.duck-overlay .cloud {
+  position: absolute;
+  top: 10vh;
+  left: 0;
+  width: 5rem;
+  height: 3rem;
+  border-radius: 6rem 6rem 0 1rem;
+  background-color: #fff;
+  transform: translateX(110vw);
+  opacity: 0.9;
+  animation: cloud-animation-1 10s linear infinite;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.25));
+}
+
+.duck-overlay .cloud--2,
+.duck-overlay .cloud--4 {
+  top: 18vh;
+  transform: translateX(120vw) scale(0.8);
+  animation: cloud-animation-2 10s 2.5s linear infinite;
+}
+
+.duck-overlay .cloud--3 {
+  animation-delay: 5s;
+}
+
+.duck-overlay .cloud--4 {
+  animation-delay: 7.5s;
+}
+
+.duck-overlay .cloud::after {
+  content: "";
+  position: absolute;
+  width: 6rem;
+  height: 3.5rem;
+  bottom: 0;
+  border-radius: 6rem 10rem 1rem 0;
+  transform: translateX(3rem);
+  background-color: #fff;
+}
+
+.duck-overlay .cloud::before {
+  content: "";
+  position: absolute;
+  width: 4rem;
+  height: 3rem;
+  bottom: 2rem;
+  border-radius: 10rem 10rem 0 0;
+  transform: translateX(2rem);
+  background-color: #fff;
+}
+
+.duck-overlay .duck__wrapper {
+  position: absolute;
+  bottom: 12px;
+  left: -40vw;
+  transform: translateX(0);
+  animation: duck-walk-across 3.2s linear forwards;
+  display: grid;
+  place-content: center;
+  width: 200px;
+  height: 180px;
+}
+
+.duck-overlay .duck {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.duck-overlay .duck__inner {
+  animation: bird-up-down var(--duck-speed-half) linear infinite;
+}
+
+.duck-overlay .duck__head {
+  align-self: flex-end;
+  width: 6rem;
+  height: 4rem;
+  border-radius: 8rem 8rem 0 0;
+  background-color: var(--color-yellow);
+  position: relative;
+  transform: translateY(1px);
+  z-index: 1;
+}
+
+.duck-overlay .duck__head::after,
+.duck-overlay .duck__head::before {
+  content: "";
+  position: absolute;
+  border-radius: 1rem;
+  background-color: var(--color-yellow);
+  width: 0.4rem;
+  height: 2rem;
+  top: 0;
+}
+
+.duck-overlay .duck__head::after {
+  left: 44%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+}
+
+.duck-overlay .duck__head::before {
+  left: 45%;
+  transform: translate(-50%, -50%) rotate(10deg);
+}
+
+.duck-overlay .duck__white {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.8rem;
+  width: 0.6rem;
+  height: 1.3rem;
+  transform: rotate(40deg);
+  border-radius: 50%;
+  border-left: 0.2rem solid #fff;
+}
+
+.duck-overlay .duck__eye {
+  position: absolute;
+  bottom: 0.2rem;
+  right: 1rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background-color: #000;
+  animation: eye-animation 1s infinite linear;
+}
+
+.duck-overlay .duck__eye--shadow {
+  position: absolute;
+  bottom: -0.5rem;
+  right: 2rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background-color: var(--color-light-orange-2);
+  z-index: 1;
+}
+
+.duck-overlay .duck__mouth {
+  position: absolute;
+  right: 0;
+  top: 40%;
+  width: 1rem;
+  height: 1.2rem;
+  transform: translate(90%, -50%);
+  clip-path: polygon(0 0, 100% 40%, 100% 60%, 0% 100%);
+  border-radius: 0 1rem 1rem 0;
+  background-color: var(--color-orange);
+}
+
+.duck-overlay .duck__body {
+  width: 9.5rem;
+  height: 5rem;
+  border-radius: 1rem 0 16rem 16rem;
+  background-color: var(--color-yellow);
+  position: relative;
+  overflow: hidden;
+}
+
+.duck-overlay .duck__body::after {
+  content: "";
+  position: absolute;
+  width: 105%;
+  height: 200%;
+  left: 50%;
+  top: -95%;
+  transform: translate(-50%, 0.02rem) rotate(-6deg);
+  border-radius: 50%;
+  border-bottom: 1rem solid var(--color-light-orange-2);
+}
+
+.duck-overlay .duck__wing {
+  position: absolute;
+  left: 0.6rem;
+  top: 55%;
+  width: 4rem;
+  height: 2.4rem;
+  border-radius: 1rem 1rem 4rem 4rem;
+  background-color: var(--color-light-orange-1);
+  transform: translate(0, -50%);
+  transform-origin: right;
+  animation: wing-animation var(--duck-speed) linear infinite;
+  z-index: 1;
+}
+
+.duck-overlay .duck__foot {
+  position: absolute;
+  width: 0.6rem;
+  height: 2rem;
+  background-color: var(--color-orange);
+  z-index: -1;
+}
+
+.duck-overlay .duck__foot::after {
+  content: "";
+  position: absolute;
+  width: 2rem;
+  height: 0.6rem;
+  bottom: 0;
+  left: -0.5rem;
+  background-color: var(--color-orange);
+  border-radius: 1rem;
+}
+
+.duck-overlay .duck__foot--1,
+.duck-overlay .duck__foot--2 {
+  left: 40%;
+  bottom: 0;
+  transform: translate(-50%, 80%);
+}
+
+.duck-overlay .duck__foot--1 {
+  animation: foot-ans var(--duck-speed) linear infinite;
+}
+
+.duck-overlay .duck__foot--2 {
+  animation: foot-ans var(--duck-speed) var(--duck-speed-half) linear infinite;
+}
+
+.duck-overlay .surface {
+  position: absolute;
+  bottom: -1.9rem;
+  left: 55%;
+  transform: translateX(-50%);
+  background-color: var(--color-blue-2);
+  width: 8rem;
+  height: 0.5rem;
+  border-radius: 1rem;
+  animation: surface-animation var(--duck-speed-half) linear infinite;
+}
+
+@keyframes surface-animation {
+  0%,
+  100% {
+    transform: translateX(-50%) scaleX(0.9);
+  }
+
+  50% {
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+@keyframes foot-ans {
+  0% {
+    transform: translate(-50%, 80%) rotate(0deg);
+  }
+
+  10% {
+    transform: translate(-150%, 80%) rotate(10deg);
+  }
+
+  20% {
+    transform: translate(-150%, 10%) rotate(10deg);
+  }
+
+  40% {
+    transform: translate(400%, 10%) rotate(-20deg);
+  }
+
+  60% {
+    transform: translate(600%, 60%) rotate(-20deg);
+  }
+
+  70% {
+    transform: translate(500%, 60%) rotate(0deg);
+  }
+}
+
+@keyframes bird-up-down {
+  0%,
+  100% {
+    transform: translateY(0.4rem);
+  }
+
+  50% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes wing-animation {
+  0%,
+  100% {
+    transform: translate(0, -50%) rotate(16deg);
+  }
+
+  50% {
+    transform: translate(0, -50%) rotate(-2deg);
+  }
+}
+
+@keyframes eye-animation {
+  0%,
+  20% {
+    transform: scaleY(1);
+  }
+
+  10% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes cloud-animation-1 {
+  0% {
+    transform: translateX(110vw);
+  }
+
+  100% {
+    transform: translateX(-50vw);
+  }
+}
+
+@keyframes cloud-animation-2 {
+  0% {
+    transform: translateX(110vw) scale(0.8);
+  }
+
+  100% {
+    transform: translateX(-50vw) scale(0.8);
+  }
+}
+
+@keyframes duck-walk-across {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(140vw);
+  }
+}
