@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta?.env?.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta?.env?.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta?.env?.VITE_SUPABASE_URL || 'https://lobpauefngjeiewtpzul.supabase.co'
+const supabaseAnonKey = import.meta?.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvYnBhdWVmbmdqZWlld3RwenVsIiwicm9zZSI6ImFub24iLCJpYXQiOjE3Njc4NTA4MzIsImV4cCI6MjA4MzQyNjgzMn0.4m60-a8MUa7HIPgal1MsA9H7yAostxJ7ZUUK8VkS0NY'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase environment variables are missing. Define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+if (!import.meta?.env?.VITE_SUPABASE_URL || !import.meta?.env?.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Supabase env vars missing at build; using baked-in fallback. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
