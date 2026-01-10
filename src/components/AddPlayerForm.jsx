@@ -103,32 +103,11 @@ const AddPlayerForm = ({
       icon: "radio_button_unchecked",
     },
     {
-      value: "icon-batsman",
-      label: "Icon Batsman",
-      description: "Top-order star",
-      color: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-      icon: "sports_cricket",
-    },
-    {
-      value: "icon-bowler",
-      label: "Icon Bowler",
-      description: "Strike specialist",
-      color: "bg-red-500/10 text-red-300 border-red-500/30",
-      icon: "sports_baseball",
-    },
-    {
-      value: "icon-allrounder",
-      label: "Icon All-Rounder",
-      description: "Impact in both",
-      color: "bg-purple-500/10 text-purple-300 border-purple-500/30",
-      icon: "military_tech",
-    },
-    {
-      value: "icon-keeper",
-      label: "Icon Wicket-Keeper",
-      description: "Elite gloves",
-      color: "bg-yellow-500/10 text-yellow-300 border-yellow-500/30",
-      icon: "sports_handball",
+      value: "icon-player",
+      label: "Icon Player",
+      description: "Marquee player",
+      color: "bg-primary/10 text-primary border-primary/30",
+      icon: "star",
     },
   ];
 
@@ -224,37 +203,98 @@ const AddPlayerForm = ({
         </div>
       </div>
 
-        {/* Icon Player Group */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-text-secondary">
-              Icon Player Group
+      {/* Icon Player Group */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-text-secondary">
+            Icon Player Group
+          </label>
+          <span className="text-[11px] text-text-secondary/70">
+            Optional tag for marquee players
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {iconRoles.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() =>
+                setFormData({
+                  ...formData,
+                  icon_role:
+                    item.value === "icon-player"
+                      ? "icon-player-sequence"
+                      : item.value,
+                })
+              }
+              className={`w-full h-12 rounded-lg border text-left px-3 flex items-center gap-3 transition-all ${
+                formData.icon_role === item.value ||
+                (item.value === "icon-player" &&
+                  (formData.icon_role || "").startsWith("icon-player"))
+                  ? `${item.color} shadow-[0_0_0_1px_rgba(13,185,242,0.3)]`
+                  : "bg-[#1c2e35] text-text-secondary border-[#283539] hover:bg-[#283539]"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {item.icon}
+              </span>
+              <div className="leading-tight">
+                <p className="text-sm font-semibold text-white">{item.label}</p>
+                <p className="text-[11px] text-text-secondary/80">
+                  {item.description}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Icon Order Option - Only shown when Icon Player is selected */}
+        {(formData.icon_role || "").startsWith("icon-player") && (
+          <div className="mt-3 p-3 rounded-lg bg-[#1c2e35] border border-[#283539]">
+            <label className="block text-xs font-medium text-text-secondary mb-2">
+              Auction Order
             </label>
-            <span className="text-[11px] text-text-secondary/70">
-              Optional tag for marquee players
-            </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {iconRoles.map((item) => (
+            <div className="grid grid-cols-2 gap-2">
               <button
-                key={item.value}
                 type="button"
-                onClick={() => setFormData({ ...formData, icon_role: item.value })}
-                className={`w-full h-12 rounded-lg border text-left px-3 flex items-center gap-3 transition-all ${
-                  formData.icon_role === item.value
-                    ? `${item.color} shadow-[0_0_0_1px_rgba(13,185,242,0.3)]`
-                    : "bg-[#1c2e35] text-text-secondary border-[#283539] hover:bg-[#283539]"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    icon_role: "icon-player-sequence",
+                  })
+                }
+                className={`h-10 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                  formData.icon_role === "icon-player-sequence" ||
+                  formData.icon_role === "icon-player"
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-[#283539] text-text-secondary border-[#3b4e54] hover:bg-[#3b4e54]"
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-white">{item.label}</p>
-                  <p className="text-[11px] text-text-secondary/80">{item.description}</p>
-                </div>
+                <span className="material-symbols-outlined text-sm">
+                  format_list_numbered
+                </span>
+                Sequence
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData({ ...formData, icon_role: "icon-player-random" })
+                }
+                className={`h-10 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                  formData.icon_role === "icon-player-random"
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-[#283539] text-text-secondary border-[#3b4e54] hover:bg-[#3b4e54]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  shuffle
+                </span>
+                Random
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+      </div>
 
       {/* Base Price */}
       <div>

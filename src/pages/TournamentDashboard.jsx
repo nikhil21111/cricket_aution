@@ -6,7 +6,7 @@ import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
 import AddPlayerForm from "../components/AddPlayerForm";
-import { formatCurrency, formatShortCurrency } from "../lib/supabase";
+import { formatShortCurrency } from "../lib/supabase";
 import toast from "react-hot-toast";
 
 const TournamentDashboard = () => {

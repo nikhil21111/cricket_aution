@@ -8,16 +8,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #101e22;
+  background: #020617;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #283539;
+  background: #334155;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b4e54;
+  background: #475569;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -116,6 +116,276 @@
   font-weight: 700;
   font-size: 14px;
   color: #e8f8ff;
+}
+
+/* Sold Card Overlay */
+.sold-card-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 130;
+  animation: fadeInCard 0.3s ease-out forwards;
+}
+
+@keyframes fadeInCard {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sold-card {
+  background: linear-gradient(
+    145deg,
+    rgba(20, 40, 50, 0.98),
+    rgba(10, 25, 30, 0.98)
+  );
+  border: 2px solid;
+  border-radius: 24px;
+  padding: 32px 40px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 80px -20px rgba(0, 0, 0, 0.9),
+    0 0 60px -10px var(--card-glow, rgba(13, 185, 242, 0.4));
+  animation: cardPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  max-width: 380px;
+  width: 90%;
+}
+
+.sold-card.sold-type {
+  --card-glow: rgba(34, 197, 94, 0.5);
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+.sold-card.unsold-type {
+  --card-glow: rgba(251, 191, 36, 0.5);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+@keyframes cardPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sold-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.sold-card-badge.sold {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.25),
+    rgba(34, 197, 94, 0.1)
+  );
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.sold-card-badge.unsold {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.25),
+    rgba(251, 191, 36, 0.1)
+  );
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+  }
+}
+
+.sold-card-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 30px -10px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, #1c2e35, #0f1a1e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sold-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sold-card-avatar .material-symbols-outlined {
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sold-card-player-name {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.sold-card-role {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+
+.sold-card-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  margin: 16px 0;
+}
+
+.sold-card-team-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sold-card-team-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.sold-card-team-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sold-card-team-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e0f4ff;
+}
+
+.sold-card-price {
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 8px;
+}
+
+.sold-card-price.unsold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Mobile responsive styles for celebration card */
+@media (max-width: 640px) {
+  .sold-card {
+    padding: 20px 24px;
+    max-width: 280px;
+    border-radius: 18px;
+  }
+
+  .sold-card-badge {
+    padding: 6px 14px;
+    font-size: 11px;
+    margin-bottom: 14px;
+  }
+
+  .sold-card-avatar {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 12px;
+    border-width: 3px;
+  }
+
+  .sold-card-avatar .material-symbols-outlined {
+    font-size: 32px;
+  }
+
+  .sold-card-player-name {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .sold-card-role {
+    padding: 3px 10px;
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+
+  .sold-card-divider {
+    margin: 12px 0;
+  }
+
+  .sold-card-team-section {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .sold-card-team-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+
+  .sold-card-team-name {
+    font-size: 14px;
+  }
+
+  .sold-card-price {
+    font-size: 24px;
+    margin-top: 4px;
+  }
 }
 
 .duck-overlay {

@@ -15,6 +15,7 @@ const TournamentLive = () => {
   const [players, setPlayers] = useState([]);
   const [auctionState, setAuctionState] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [auctionStatus, setAuctionStatus] = useState("live"); // 'live', 'paused', 'ended'
 
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [highestBid, setHighestBid] = useState(0);
@@ -119,6 +120,24 @@ const TournamentLive = () => {
   };
 
   const iconRoleMeta = {
+    "icon-player": {
+      label: "Icon Player",
+      color: "bg-yellow-400",
+      icon: "star",
+      baseRole: null,
+    },
+    "icon-player-sequence": {
+      label: "Icon Player",
+      color: "bg-yellow-400",
+      icon: "star",
+      baseRole: null,
+    },
+    "icon-player-random": {
+      label: "Icon Player",
+      color: "bg-yellow-400",
+      icon: "star",
+      baseRole: null,
+    },
     "icon-batsman": {
       label: "Icon Batsman",
       color: "bg-blue-400",
@@ -145,10 +164,16 @@ const TournamentLive = () => {
     },
   };
 
-  const getPlayerCategoryId = (player) =>
-    player?.icon_role && player.icon_role !== "none"
-      ? player.icon_role
-      : player?.role;
+  const getPlayerCategoryId = (player) => {
+    if (player?.icon_role && player.icon_role !== "none") {
+      // Group all icon-player variants under single category
+      if (player.icon_role.startsWith("icon-player")) {
+        return "icon-player";
+      }
+      return player.icon_role;
+    }
+    return player?.role;
+  };
 
   const baseRoleCategories = Object.keys(roleMeta).map((key) => ({
     id: key,
@@ -158,13 +183,20 @@ const TournamentLive = () => {
   }));
 
   const buildDynamicCategories = (playersList = []) => {
-    const iconCategories = Array.from(
+    const iconRolesInUse = playersList
+      .filter((p) => p.icon_role && p.icon_role !== "none")
+      .map((p) => p.icon_role);
+
+    // Group all icon-player variants under single "icon-player" category
+    const normalizedIconRoles = Array.from(
       new Set(
-        playersList
-          .filter((p) => p.icon_role && p.icon_role !== "none")
-          .map((p) => p.icon_role)
+        iconRolesInUse.map((role) =>
+          role.startsWith("icon-player") ? "icon-player" : role
+        )
       )
-    )
+    );
+
+    const iconCategories = normalizedIconRoles
       .map((iconId) => ({ id: iconId, ...iconRoleMeta[iconId] }))
       .filter((cat) => cat.label);
 
@@ -185,7 +217,10 @@ const TournamentLive = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         // Validate that all categories exist
-        if (parsed.length > 0 && parsed.every((c) => c.id && c.label && c.color)) {
+        if (
+          parsed.length > 0 &&
+          parsed.every((c) => c.id && c.label && c.color)
+        ) {
           return parsed.map((cat) => ({
             ...cat,
             icon:
@@ -325,6 +360,82 @@ const TournamentLive = () => {
     ];
     saveCategoryOrder(newOrder);
   };
+
+  // Pause the auction
+  const pauseAuction = async () => {
+    try {
+      await supabase
+        .from("auction_state")
+        .update({ is_live: false })
+        .eq("tournament_id", tournamentId);
+
+      setAuctionStatus("paused");
+      toast("Auction paused", { icon: "⏸️" });
+    } catch (error) {
+      toast.error("Failed to pause auction");
+    }
+  };
+
+  // Resume the auction
+  const resumeAuction = async () => {
+    try {
+      await supabase
+        .from("auction_state")
+        .update({ is_live: true })
+        .eq("tournament_id", tournamentId);
+
+      setAuctionStatus("live");
+      toast.success("Auction resumed!");
+    } catch (error) {
+      toast.error("Failed to resume auction");
+    }
+  };
+
+  // End the auction
+  const endAuction = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to end the auction? This will mark the tournament as completed."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await supabase
+        .from("auction_state")
+        .update({
+          is_live: false,
+          current_player_id: null,
+          highest_bid: 0,
+          highest_bidder_id: null,
+        })
+        .eq("tournament_id", tournamentId);
+
+      await supabase
+        .from("tournaments")
+        .update({ status: "completed" })
+        .eq("id", tournamentId);
+
+      setAuctionStatus("ended");
+      toast.success("Auction ended successfully!");
+    } catch (error) {
+      toast.error("Failed to end auction");
+    }
+  };
+
+  // Sync auction status from auctionState
+  useEffect(() => {
+    if (auctionState) {
+      if (tournament?.status === "completed") {
+        setAuctionStatus("ended");
+      } else if (auctionState.is_live) {
+        setAuctionStatus("live");
+      } else {
+        setAuctionStatus("paused");
+      }
+    }
+  }, [auctionState, tournament]);
 
   useEffect(() => {
     if (tournamentId) {
@@ -622,7 +733,8 @@ const TournamentLive = () => {
     const newRemainingPurse = soldToTeam.remaining_purse - soldPrice;
     const isIconPlayer =
       currentPlayer.icon_role && currentPlayer.icon_role !== "none";
-    const newIconCount = (soldToTeam.icon_player_count || 0) + (isIconPlayer ? 1 : 0);
+    const newIconCount =
+      (soldToTeam.icon_player_count || 0) + (isIconPlayer ? 1 : 0);
 
     setLoading(true);
     try {
@@ -838,6 +950,69 @@ const TournamentLive = () => {
       markAuctionStarted();
     }
 
+    // Check for icon players first - they should be auctioned before regular players
+    const iconPlayers = eligiblePlayers.filter(
+      (p) => p.icon_role && p.icon_role.startsWith("icon-player")
+    );
+
+    if (iconPlayers.length > 0) {
+      // Check if any icon player is set to random
+      const hasRandomIconPlayer = iconPlayers.some(
+        (p) => p.icon_role === "icon-player-random"
+      );
+      // Check if any icon player is set to sequence
+      const hasSequenceIconPlayer = iconPlayers.some(
+        (p) =>
+          p.icon_role === "icon-player-sequence" ||
+          p.icon_role === "icon-player"
+      );
+
+      // If all are random, pick randomly
+      if (hasRandomIconPlayer && !hasSequenceIconPlayer) {
+        const randomIndex = Math.floor(Math.random() * iconPlayers.length);
+        selectPlayer(iconPlayers[randomIndex]);
+        return;
+      }
+
+      // If all are sequence or mixed, prioritize sequence players first
+      const sequencePlayers = iconPlayers.filter(
+        (p) =>
+          p.icon_role === "icon-player-sequence" ||
+          p.icon_role === "icon-player"
+      );
+      const randomPlayers = iconPlayers.filter(
+        (p) => p.icon_role === "icon-player-random"
+      );
+
+      if (sequencePlayers.length > 0) {
+        // Pick first sequence player (in order they were added)
+        selectPlayer(sequencePlayers[0]);
+        return;
+      } else if (randomPlayers.length > 0) {
+        // All remaining icon players are random
+        const randomIndex = Math.floor(Math.random() * randomPlayers.length);
+        selectPlayer(randomPlayers[randomIndex]);
+        return;
+      }
+    }
+
+    // Check if we just finished all icon players - show notification
+    const allPlayers = players.filter((p) => p.status === "available");
+    const hadIconPlayers = allPlayers.some(
+      (p) => p.icon_role && p.icon_role.startsWith("icon-player")
+    );
+    const currentWasIconPlayer =
+      currentPlayer?.icon_role &&
+      currentPlayer.icon_role.startsWith("icon-player");
+    if (
+      currentWasIconPlayer &&
+      !iconPlayers.length &&
+      hadIconPlayers === false
+    ) {
+      toast.success("⭐ All Icon Players complete! Moving to regular players.");
+    }
+
+    // No icon players left, proceed with regular category-based logic
     // Get players from current category first (excluding current player)
     const currentCategoryPlayers = currentCategory
       ? eligiblePlayers.filter(
@@ -972,42 +1147,156 @@ const TournamentLive = () => {
 
   return (
     <div className="bg-background-dark text-white min-h-screen flex flex-col overflow-x-hidden">
+      {/* Sold Celebration - Fireworks + Card */}
       {celebration?.type === "sold" && (
-        <div className="celebration-overlay">
-          <div className="fireworks-layer" ref={fireworksRef}></div>
-        </div>
-      )}
-
-      {celebration?.type === "unsold" && (
-        <div className="duck-overlay">
-          <div
-            className="duck-scene"
-            key={celebration?.player || celebrationPlayer?.player?.id || "duck"}
-          >
-            <div className="cloud cloud--1"></div>
-            <div className="cloud cloud--2"></div>
-            <div className="cloud cloud--3"></div>
-            <div className="cloud cloud--4"></div>
-
-            <div className="duck__wrapper">
-              <div className="duck">
-                <div className="duck duck__inner">
-                  <div className="duck__mouth"></div>
-                  <div className="duck__head">
-                    <div className="duck__eye"></div>
-                    <div className="duck__eye--shadow"></div>
-                    <div className="duck__white"></div>
-                  </div>
-                  <div className="duck__body"></div>
-                  <div className="duck__wing"></div>
+        <>
+          <div className="celebration-overlay">
+            <div className="fireworks-layer" ref={fireworksRef}></div>
+          </div>
+          <div className="sold-card-overlay">
+            <div className="sold-card sold-type">
+              <div className="sold-card-badge sold">
+                <span className="material-symbols-outlined text-lg">
+                  celebration
+                </span>
+                SOLD
+              </div>
+              <div className="sold-card-avatar">
+                {celebrationPlayer?.player?.photo_url ? (
+                  <img
+                    src={celebrationPlayer.player.photo_url}
+                    alt={celebrationPlayer.player.name}
+                  />
+                ) : (
+                  <span className="material-symbols-outlined">person</span>
+                )}
+              </div>
+              <div className="sold-card-player-name">
+                {celebrationPlayer?.player?.name}
+              </div>
+              <span
+                className={`sold-card-role ${
+                  celebrationPlayer?.player?.role === "batsman"
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                    : celebrationPlayer?.player?.role === "bowler"
+                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                    : celebrationPlayer?.player?.role === "all-rounder"
+                    ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                    : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                }`}
+              >
+                {celebrationPlayer?.player?.role?.replace("-", " ")}
+              </span>
+              <div className="sold-card-divider"></div>
+              <div className="sold-card-team-section">
+                <div
+                  className="sold-card-team-logo"
+                  style={{
+                    backgroundColor: `${
+                      celebrationPlayer?.bidder?.color || "#8b5cf6"
+                    }20`,
+                    color: celebrationPlayer?.bidder?.color || "#8b5cf6",
+                  }}
+                >
+                  {celebrationPlayer?.bidder?.logo_url ? (
+                    <img
+                      src={celebrationPlayer.bidder.logo_url}
+                      alt={celebrationPlayer.bidder.name}
+                    />
+                  ) : (
+                    celebrationPlayer?.bidder?.short_name?.slice(0, 3) || "TM"
+                  )}
                 </div>
-                <div className="duck__foot duck__foot--1"></div>
-                <div className="duck__foot duck__foot--2"></div>
-                <div className="surface"></div>
+                <div className="sold-card-team-name">
+                  {celebrationPlayer?.bidder?.name}
+                </div>
+              </div>
+              <div className="sold-card-price">
+                {formatShortCurrency(celebrationPlayer?.amount || 0)}
               </div>
             </div>
           </div>
-        </div>
+        </>
+      )}
+
+      {/* Unsold Celebration - Duck + Card */}
+      {celebration?.type === "unsold" && (
+        <>
+          <div className="duck-overlay">
+            <div
+              className="duck-scene"
+              key={
+                celebration?.player || celebrationPlayer?.player?.id || "duck"
+              }
+            >
+              <div className="cloud cloud--1"></div>
+              <div className="cloud cloud--2"></div>
+              <div className="cloud cloud--3"></div>
+              <div className="cloud cloud--4"></div>
+
+              <div className="duck__wrapper">
+                <div className="duck">
+                  <div className="duck duck__inner">
+                    <div className="duck__mouth"></div>
+                    <div className="duck__head">
+                      <div className="duck__eye"></div>
+                      <div className="duck__eye--shadow"></div>
+                      <div className="duck__white"></div>
+                    </div>
+                    <div className="duck__body"></div>
+                    <div className="duck__wing"></div>
+                  </div>
+                  <div className="duck__foot duck__foot--1"></div>
+                  <div className="duck__foot duck__foot--2"></div>
+                  <div className="surface"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="sold-card-overlay">
+            <div className="sold-card unsold-type">
+              <div className="sold-card-badge unsold">
+                <span className="material-symbols-outlined text-lg">
+                  sentiment_dissatisfied
+                </span>
+                UNSOLD
+              </div>
+              <div className="sold-card-avatar">
+                {celebrationPlayer?.player?.photo_url ? (
+                  <img
+                    src={celebrationPlayer.player.photo_url}
+                    alt={celebrationPlayer.player.name}
+                  />
+                ) : (
+                  <span className="material-symbols-outlined">person</span>
+                )}
+              </div>
+              <div className="sold-card-player-name">
+                {celebrationPlayer?.player?.name}
+              </div>
+              <span
+                className={`sold-card-role ${
+                  celebrationPlayer?.player?.role === "batsman"
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                    : celebrationPlayer?.player?.role === "bowler"
+                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                    : celebrationPlayer?.player?.role === "all-rounder"
+                    ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                    : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                }`}
+              >
+                {celebrationPlayer?.player?.role?.replace("-", " ")}
+              </span>
+              <div className="sold-card-divider"></div>
+              <div className="sold-card-price unsold">
+                Base:{" "}
+                {formatShortCurrency(
+                  celebrationPlayer?.player?.base_price || 0
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Header */}
@@ -1069,6 +1358,39 @@ const TournamentLive = () => {
               </span>
             </div>
           )}
+
+          {/* Auction Control Buttons */}
+          <div className="flex items-center gap-2">
+            {auctionStatus === "live" ? (
+              <button
+                onClick={pauseAuction}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors text-sm font-semibold"
+              >
+                <span className="material-symbols-outlined text-sm">pause</span>
+                Pause
+              </button>
+            ) : auctionStatus === "paused" ? (
+              <button
+                onClick={resumeAuction}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors text-sm font-semibold"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  play_arrow
+                </span>
+                Resume
+              </button>
+            ) : null}
+
+            {auctionStatus !== "ended" && (
+              <button
+                onClick={endAuction}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-colors text-sm font-semibold"
+              >
+                <span className="material-symbols-outlined text-sm">stop</span>
+                End
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <Link
@@ -1259,7 +1581,8 @@ const TournamentLive = () => {
                         {availablePlayers.length > 0 && !randomMode && (
                           <div className="flex items-center gap-2 mb-6">
                             {categoryOrder.map((cat) => {
-                              const count = playersByCategory[cat.id]?.length || 0;
+                              const count =
+                                playersByCategory[cat.id]?.length || 0;
                               return (
                                 <div
                                   key={cat.id}
@@ -1474,8 +1797,8 @@ const TournamentLive = () => {
                                   {cat.label}
                                 </p>
                                 <p className="text-text-secondary text-xs">
-                                  {playersByCategory[cat.id]?.length || 0} players
-                                  available
+                                  {playersByCategory[cat.id]?.length || 0}{" "}
+                                  players available
                                 </p>
                               </div>
                               <div className="flex flex-col gap-1">

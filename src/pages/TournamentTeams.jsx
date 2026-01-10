@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import {
-  supabase,
-  formatCurrency,
-  formatShortCurrency,
-  uploadImage,
-} from "../lib/supabase";
+import { supabase, formatShortCurrency, uploadImage } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
@@ -159,6 +154,10 @@ const TournamentTeams = () => {
 
   const getIconLabel = (iconRole) => {
     switch (iconRole) {
+      case "icon-player":
+      case "icon-player-sequence":
+      case "icon-player-random":
+        return "Icon";
       case "icon-batsman":
         return "Icon Bat";
       case "icon-bowler":
@@ -234,7 +233,9 @@ const TournamentTeams = () => {
     // Team Stats
     doc.setFontSize(10);
     doc.setTextColor(13, 185, 242);
-    const statsText = `${teamPlayers.length} Players • Icon Players: ${iconCount} • Total Spent: ${formatShortCurrency(
+    const statsText = `${
+      teamPlayers.length
+    } Players • Icon Players: ${iconCount} • Total Spent: ${formatShortCurrency(
       team.total_purse - team.remaining_purse
     )} • Remaining: ${formatShortCurrency(team.remaining_purse)}`;
     doc.text(statsText, pageWidth / 2, 42, { align: "center" });
@@ -573,7 +574,11 @@ const TournamentTeams = () => {
                           const iconCount = squadPlayers.filter(
                             (p) => p.icon_role && p.icon_role !== "none"
                           ).length;
-                          return `${squadPlayers.length} Players • ${iconCount} Icon • ${formatShortCurrency(selectedSquad.remaining_purse)} Remaining`;
+                          return `${
+                            squadPlayers.length
+                          } Players • ${iconCount} Icon • ${formatShortCurrency(
+                            selectedSquad.remaining_purse
+                          )} Remaining`;
                         })()}
                       </p>
                     </div>
@@ -1107,7 +1112,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: team.name || "",
     short_name: team.short_name || "",
-    color: team.color || "#0db9f2",
+    color: team.color || "#8b5cf6",
     total_purse: team.total_purse || 10000,
   });
   const [logoFile, setLogoFile] = useState(null);

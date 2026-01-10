@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Tournaments from "./pages/Tournaments";
@@ -128,20 +129,22 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: "#1c2e35",
-            color: "#fff",
-            border: "1px solid #283539",
-          },
-        }}
-      />
-      <AppRoutes />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#1c2e35",
+              color: "#fff",
+              border: "1px solid #283539",
+            },
+          }}
+        />
+        <AppRoutes />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
