@@ -7,4 +7,10 @@ export default defineConfig({
     // Increase chunk size warning threshold for production builds
     chunkSizeWarningLimit: 1000, // in kBs
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    css: true,
+  },
 })
