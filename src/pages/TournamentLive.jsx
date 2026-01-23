@@ -622,7 +622,8 @@ const TournamentLive = () => {
         (p) => p.id === auctionState.current_player_id
       );
       setCurrentPlayer(player || null);
-      setHighestBid(auctionState.highest_bid || player?.base_price || 0);
+      // Keep highest_bid as stored (could be 0 if no bids yet)
+      setHighestBid(auctionState.highest_bid || 0);
       setHighestBidder(
         teams.find((t) => t.id === auctionState.highest_bidder_id) || null
       );
@@ -641,7 +642,7 @@ const TournamentLive = () => {
         .from("auction_state")
         .update({
           current_player_id: player.id,
-          highest_bid: player.base_price,
+          highest_bid: 0, // Start at 0, first bid will be base_price
           highest_bidder_id: null,
           is_live: true,
         })
@@ -656,7 +657,7 @@ const TournamentLive = () => {
         .eq("id", tournamentId);
 
       setCurrentPlayer(player);
-      setHighestBid(player.base_price);
+      setHighestBid(0); // First bid will be base_price
       setHighestBidder(null);
       setBidHistory([]);
       toast.success(`${player.name} is now up for auction!`);
@@ -674,7 +675,11 @@ const TournamentLive = () => {
       return;
     }
 
-    const newBid = highestBid + bidIncrement;
+    // First bid is base price, subsequent bids add increment
+    const isFirstBid = highestBidder === null;
+    const newBid = isFirstBid
+      ? currentPlayer.base_price
+      : highestBid + bidIncrement;
 
     if (newBid > team.remaining_purse) {
       toast.error(`${team.short_name} doesn't have enough purse!`);
@@ -1126,11 +1131,18 @@ const TournamentLive = () => {
     return roleMeta[role]?.icon || "person";
   };
 
-  const nextBidAmount = highestBid + bidIncrement;
+  // First bid is base price, subsequent bids add increment
+  const isFirstBid = highestBidder === null;
+  const nextBidAmount = isFirstBid
+    ? currentPlayer?.base_price || 0
+    : highestBid + bidIncrement;
   const displayPlayer = celebrationPlayer?.player || currentPlayer;
+  // Show base price when no bids yet, otherwise show highest bid
   const displayHighestBid =
     celebrationPlayer?.amount !== undefined
       ? celebrationPlayer.amount
+      : isFirstBid
+      ? currentPlayer?.base_price || 0
       : highestBid;
   const displayHighestBidder = celebrationPlayer?.bidder || highestBidder;
 
@@ -1469,13 +1481,15 @@ const TournamentLive = () => {
                       </div>
 
                       <div className="space-y-4 mt-6">
-                        {/* Current Highest Bid */}
+                        {/* Current Highest Bid or Base Price */}
                         <div className="p-6 lg:p-8 rounded-2xl bg-[#111618] border border-primary/30 shadow-[0_0_40px_-10px_rgba(13,185,242,0.25)] relative overflow-hidden">
                           <div className="absolute top-0 left-0 w-1 h-full bg-primary animate-pulse shadow-[0_0_15px_2px_rgba(13,185,242,0.6)]"></div>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-                              Current Highest Bid
+                              {isFirstBid
+                                ? "Base Price"
+                                : "Current Highest Bid"}
                             </p>
                           </div>
                           <div className="flex items-baseline gap-2">
