@@ -743,3 +743,123 @@
     transform: translateX(140vw);
   }
 }
+
+/* --- STADIUM NIGHT GLOW DESIGN SYSTEM --- */
+
+/* Glassmorphism Overrides for Arbitrary Tailwind Colors */
+.bg-\[\#1c2e35\] {
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.bg-\[\#1c2e35\]\/50 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bg-\[\#1c2e35\]\/30 {
+  background-color: rgba(15, 23, 42, 0.25) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.border-\[\#283539\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.hover\:bg-\[\#283539\]:hover,
+.hover\:bg-\[\#243d46\]:hover {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+.hover\:border-\[\#283539\]:hover {
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+.bg-\[\#283539\] {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hover\:bg-\[\#3b4e54\]:hover {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  color: #c084fc !important;
+}
+
+.bg-\[\#16262c\] {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bg-\[\#161d20\] {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Animated Border Glow for Current Bidding Player */
+.active-player-glow {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.25), inset 0 0 10px rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(139, 92, 246, 0.45), inset 0 0 15px rgba(139, 92, 246, 0.2);
+    border-color: rgba(167, 139, 250, 0.7);
+  }
+}
+
+/* Navigation Indicator Glow */
+.nav-link-active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.15)) !important;
+  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+  color: #fff !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+}
+
+/* Form Inputs styling */
+input:focus, textarea:focus, select:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2) !important;
+  background-color: rgba(15, 23, 42, 0.85) !important;
+}
+
+/* Sidebar Custom Accent */
+aside {
+  background: #080c14 !important;
+  border-right-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Header Glass styling */
+header {
+  background: rgba(8, 12, 20, 0.65) !important;
+  backdrop-filter: blur(16px);
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}

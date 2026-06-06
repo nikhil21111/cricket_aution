@@ -15,7 +15,7 @@ const Sidebar = ({ auctionState, tournament, tournamentId }) => {
       location.pathname === fullPath ||
       (path === "/" && location.pathname === basePath);
     return isActive
-      ? "flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary group transition-all"
+      ? "flex items-center gap-3 px-3 py-3 rounded-xl nav-link-active group transition-all"
       : "flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#1c2e35] text-text-secondary hover:text-white transition-all";
   };
 
