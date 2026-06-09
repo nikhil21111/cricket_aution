@@ -705,7 +705,7 @@ const LiveAuction = () => {
             ) : currentPlayer ? (
               <div className={`border-3 bg-background-light dark:bg-card-dark overflow-hidden transition-all ${
                 isMarquee 
-                  ? "border-amber-500 dark:border-amber-400 shadow-[6px_6px_0px_#d97706]" 
+                  ? "marquee-glow border-amber-500 dark:border-amber-400" 
                   : "border-text-primary dark:border-text-secondary-dark shadow-[6px_6px_0px_var(--border-color)]"
               }`}>
                 {/* Header Tag */}

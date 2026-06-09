@@ -1254,6 +1254,7 @@ const TournamentLive = () => {
     ? currentPlayer?.base_price || 0
     : highestBid + bidIncrement;
   const displayPlayer = celebrationPlayer?.player || currentPlayer;
+  const isMarquee = displayPlayer?.icon_role && displayPlayer.icon_role !== "none";
   // Show base price when no bids yet, otherwise show highest bid
   const displayHighestBid =
     celebrationPlayer?.amount !== undefined
@@ -1814,10 +1815,23 @@ const TournamentLive = () => {
           overflow: hidden;
           animation: pulseBorder 1.8s infinite ease-in-out;
         }
+        .player-card.marquee-card-active {
+          animation: pulseMarqueeBorder 2s infinite ease-in-out;
+        }
         @keyframes pulseBorder {
           0%  { border-color: var(--border-color); box-shadow: var(--shadow-md); }
           50% { border-color: var(--accent-crimson); box-shadow: 8px 8px 0 var(--accent-crimson); }
           100%{ border-color: var(--border-color); box-shadow: var(--shadow-md); }
+        }
+        @keyframes pulseMarqueeBorder {
+          0%, 100% {
+            border-color: #f59e0b;
+            box-shadow: 8px 8px 0px #d97706, 0 0 15px rgba(245, 158, 11, 0.4);
+          }
+          50% {
+            border-color: #d97706;
+            box-shadow: 8px 8px 0px #b45309, 0 0 25px rgba(245, 158, 11, 0.8);
+          }
         }
         .player-inner {
           display: flex;
@@ -2489,7 +2503,7 @@ const TournamentLive = () => {
             {/* LEFT COLUMN: ACTIVE PLAYER CARD OR MANUAL SELECTOR */}
             <div className="left-col">
               {displayPlayer ? (
-                <div className="player-card">
+                <div className={`player-card ${isMarquee ? "marquee-card-active" : ""}`}>
                   <div className="status-badge">ACTIVE BIDDING</div>
                   <div className="player-inner">
                     {/* BIG PHOTO / AVATAR COLUMN */}
