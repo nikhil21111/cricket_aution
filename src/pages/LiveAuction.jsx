@@ -35,6 +35,15 @@ const LiveAuction = () => {
   const fireworksInstanceRef = useRef(null);
   const previousPlayersRef = useRef({});
 
+  const getInitials = (name) => {
+    if (!name) return "";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 3).toUpperCase();
+  };
+
   // Trigger celebration effect
   const triggerCelebration = (type, payload = {}) => {
     if (celebrationTimeoutRef.current) {
