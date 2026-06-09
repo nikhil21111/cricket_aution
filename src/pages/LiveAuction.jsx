@@ -26,6 +26,18 @@ const LiveAuction = () => {
   const [activeTab, setActiveTab] = useState("teams"); // 'teams', 'players', 'stats'
   const [searchTerm, setSearchTerm] = useState("");
   const [playerFilter, setPlayerFilter] = useState("all"); // 'all', 'available', 'sold', 'unsold'
+  const [roleFilter, setRoleFilter] = useState("all"); // 'all', 'batsman', 'bowler', 'all-rounder', 'wicket-keeper'
+
+  // Strategy simulation state
+  const [calcTeamId, setCalcTeamId] = useState("");
+  const [calcBid, setCalcBid] = useState("");
+  const [targetSquadSize, setTargetSquadSize] = useState(15);
+
+  useEffect(() => {
+    if (teams.length > 0 && !calcTeamId) {
+      setCalcTeamId(teams[0].id);
+    }
+  }, [teams, calcTeamId]);
 
   // Celebration states
   const [celebration, setCelebration] = useState(null);
@@ -331,9 +343,10 @@ const LiveAuction = () => {
     return sortedPlayers.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = playerFilter === "all" || p.status === playerFilter;
-      return matchesSearch && matchesFilter;
+      const matchesRole = roleFilter === "all" || p.role === roleFilter;
+      return matchesSearch && matchesFilter && matchesRole;
     });
-  }, [sortedPlayers, searchTerm, playerFilter]);
+  }, [sortedPlayers, searchTerm, playerFilter, roleFilter]);
 
   const recentSolds = useMemo(() => {
     return [...players]
@@ -400,6 +413,7 @@ const LiveAuction = () => {
 
   const isLive = !!auctionState?.is_live;
   const light = theme === "light";
+  const isMarquee = currentPlayer?.icon_role && currentPlayer.icon_role !== 'none';
 
   // Derive auction status for display
   const auctionStatus = useMemo(() => {
@@ -699,12 +713,22 @@ const LiveAuction = () => {
                 </p>
               </div>
             ) : currentPlayer ? (
-              <div className="border-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[6px_6px_0px_var(--border-color)] overflow-hidden">
+              <div className={`border-3 bg-background-light dark:bg-card-dark overflow-hidden transition-all ${
+                isMarquee 
+                  ? "border-amber-500 dark:border-amber-400 shadow-[6px_6px_0px_#d97706]" 
+                  : "border-text-primary dark:border-text-secondary-dark shadow-[6px_6px_0px_var(--border-color)]"
+              }`}>
                 {/* Header Tag */}
-                <div className="px-4 py-3 bg-accent-crimson text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between">
+                <div className={`px-4 py-3 text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between transition-colors ${
+                  isMarquee 
+                    ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600" 
+                    : "bg-accent-crimson"
+                }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
-                    <span className="font-display font-black text-xs uppercase tracking-widest">ACTIVE LOT ON BLOCK</span>
+                    <span className="font-display font-black text-xs uppercase tracking-widest flex items-center gap-1">
+                      {isMarquee ? "★ MARQUEE LOT ON BLOCK" : "ACTIVE LOT ON BLOCK"}
+                    </span>
                   </div>
                   <span className="font-mono text-xs font-bold uppercase bg-white/20 px-2 py-0.5">
                     {currentPlayer.role?.replace("-", " ")}
@@ -713,7 +737,11 @@ const LiveAuction = () => {
 
                 <div className="flex flex-col md:flex-row border-b-3 border-text-primary dark:border-text-secondary-dark">
                   {/* Photo Section */}
-                  <div className="relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b-3 md:border-b-0 md:border-r-3 border-text-primary dark:border-text-secondary-dark bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center overflow-hidden">
+                  <div className={`relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b-3 md:border-b-0 md:border-r-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-center overflow-hidden transition-all ${
+                    isMarquee
+                      ? "bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-transparent"
+                      : "bg-gradient-to-br from-primary/10 to-transparent"
+                  }`}>
                     {currentPlayer.photo_url ? (
                       <img
                         src={currentPlayer.photo_url}
@@ -728,6 +756,11 @@ const LiveAuction = () => {
                     <div className="absolute top-2 left-2 px-2 py-1 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark font-mono text-[10px] font-black uppercase">
                       LOT #{currentPlayer.id.slice(0, 5)}
                     </div>
+                    {isMarquee && (
+                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-500 text-white font-mono text-[8px] font-black uppercase tracking-wider border border-white/30 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                        MARQUEE
+                      </div>
+                    )}
                   </div>
 
                   {/* Info / Bidding Section */}
@@ -889,13 +922,23 @@ const LiveAuction = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab("leaderboard")}
-                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider border-r border-text-primary dark:border-text-secondary-dark transition-all ${
                     activeTab === "leaderboard"
                       ? "bg-primary text-white"
                       : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
                   }`}
                 >
                   Leaderboard
+                </button>
+                <button
+                  onClick={() => setActiveTab("strategy")}
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
+                    activeTab === "strategy"
+                      ? "bg-primary text-white"
+                      : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                  }`}
+                >
+                  Strategy
                 </button>
               </div>
 
@@ -973,6 +1016,34 @@ const LiveAuction = () => {
                                   ></div>
                                 </div>
                               </div>
+
+                              {/* Squad Balance Badges */}
+                              {(() => {
+                                const teamSquad = players.filter(
+                                  (p) => p.team_id === team.id && p.status === "sold"
+                                );
+                                const bat = teamSquad.filter((p) => p.role === "batsman").length;
+                                const bowl = teamSquad.filter((p) => p.role === "bowler").length;
+                                const ar = teamSquad.filter((p) => p.role === "all-rounder").length;
+                                const wk = teamSquad.filter((p) => p.role === "wicket-keeper").length;
+                                return (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span className="px-1.5 py-0.5 border border-text-primary dark:border-text-secondary-dark bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono text-[9px] font-bold">
+                                      BAT: {bat}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 border border-text-primary dark:border-text-secondary-dark bg-green-500/15 text-green-600 dark:text-green-400 font-mono text-[9px] font-bold">
+                                      BOWL: {bowl}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 border border-text-primary dark:border-text-secondary-dark bg-orange-500/15 text-orange-600 dark:text-orange-400 font-mono text-[9px] font-bold">
+                                      AR: {ar}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 border border-text-primary dark:border-text-secondary-dark bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[9px] font-bold">
+                                      WK: {wk}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+
                               <SquadList players={players} teamId={team.id} />
                             </div>
                           </details>
@@ -1011,6 +1082,29 @@ const LiveAuction = () => {
                             }`}
                           >
                             {f}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Role Filters */}
+                      <div className="grid grid-cols-5 gap-1">
+                        {[
+                          { id: "all", label: "All" },
+                          { id: "batsman", label: "Bat" },
+                          { id: "bowler", label: "Bowl" },
+                          { id: "all-rounder", label: "AR" },
+                          { id: "wicket-keeper", label: "WK" }
+                        ].map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => setRoleFilter(r.id)}
+                            className={`py-1 text-[9px] font-mono font-bold uppercase border border-text-primary dark:border-text-secondary-dark transition-all ${
+                              roleFilter === r.id
+                                ? "bg-primary text-white"
+                                : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-secondary dark:text-text-secondary-dark"
+                            }`}
+                          >
+                            {r.label}
                           </button>
                         ))}
                       </div>
@@ -1160,6 +1254,148 @@ const LiveAuction = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* STRATEGY TAB */}
+                {activeTab === "strategy" && (
+                  <div className="space-y-4">
+                    <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-3 shadow-[1px_1px_0px_var(--border-color)]">
+                      <p className="font-display font-black text-xs uppercase tracking-wider text-text-primary dark:text-slate-100">
+                        Bidding Impact Simulator
+                      </p>
+                      <p className="text-[10px] font-mono text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                        Calculate the impact of a mock bid on any team's remaining purse, and simulate squad completion safety.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Select Team */}
+                      <div className="space-y-1">
+                        <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
+                          Select Team
+                        </label>
+                        <select
+                          value={calcTeamId}
+                          onChange={(e) => setCalcTeamId(e.target.value)}
+                          className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
+                        >
+                          {teams.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name} ({formatShortCurrency(t.remaining_purse || 0)} left)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Target Squad Size */}
+                        <div className="space-y-1">
+                          <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
+                            Target Squad Size
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="30"
+                            value={targetSquadSize}
+                            onChange={(e) => setTargetSquadSize(Math.max(1, parseInt(e.target.value) || 0))}
+                            className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
+                          />
+                        </div>
+
+                        {/* Simulated Bid */}
+                        <div className="space-y-1">
+                          <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
+                            Simulated Bid (pts)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 1500"
+                            value={calcBid}
+                            onChange={(e) => setCalcBid(e.target.value)}
+                            className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Simulation results */}
+                    {(() => {
+                      const selectedTeam = teams.find((t) => t.id === calcTeamId) || teams[0];
+                      if (!selectedTeam) return null;
+
+                      const currentSquadSize = players.filter((p) => p.team_id === selectedTeam.id && p.status === "sold").length;
+                      const remainingPurse = selectedTeam.remaining_purse || 0;
+                      const bidVal = parseInt(calcBid) || 0;
+                      const simRemainingPurse = remainingPurse - bidVal;
+                      const simSquadSize = currentSquadSize + 1;
+                      
+                      const remainingSlots = Math.max(0, targetSquadSize - simSquadSize);
+                      const basePrice = tournament?.default_base_price || 500;
+                      const requiredReserve = remainingSlots * basePrice;
+                      const maxSafeBid = remainingPurse - requiredReserve;
+
+                      return (
+                        <div className="space-y-3 pt-2">
+                          <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-2 shadow-[1px_1px_0px_var(--border-color)]">
+                            <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
+                              Simulation Summary
+                            </p>
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-text-secondary dark:text-text-secondary-dark">Current Squad:</span>
+                              <span className="font-bold">{currentSquadSize} players</span>
+                            </div>
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-text-secondary dark:text-text-secondary-dark">Simulated Squad Size:</span>
+                              <span className="font-bold text-primary">{simSquadSize} / {targetSquadSize}</span>
+                            </div>
+                            <div className="flex justify-between text-xs font-mono border-t border-dashed border-text-primary/20 dark:border-text-secondary-dark/20 pt-1.5">
+                              <span className="text-text-secondary dark:text-text-secondary-dark">Simulated Remaining Purse:</span>
+                              <span className={`font-bold ${simRemainingPurse < 0 ? "text-accent-crimson" : "text-accent-green"}`}>
+                                {formatShortCurrency(simRemainingPurse)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs font-mono border-t border-dashed border-text-primary/20 dark:border-text-secondary-dark/20 pt-1.5">
+                              <span className="text-text-secondary dark:text-text-secondary-dark font-semibold">Min Purse Reserved (for next {remainingSlots} slots):</span>
+                              <span className="font-bold">{formatShortCurrency(requiredReserve)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-text-secondary dark:text-text-secondary-dark font-semibold">Max Safe Bid Limit:</span>
+                              <span className="font-bold text-accent-cobalt">{formatShortCurrency(Math.max(0, maxSafeBid))}</span>
+                            </div>
+                          </div>
+
+                          {/* Alerts & Warnings */}
+                          {bidVal > remainingPurse ? (
+                            <div className="border-2 border-accent-crimson bg-accent-crimson/10 p-3 text-xs font-mono text-accent-crimson shadow-[2px_2px_0px_rgba(239,68,68,0.2)]">
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                <span className="material-symbols-outlined text-sm">error</span>
+                                INSUFFICIENT FUNDS
+                              </div>
+                              This bid of {formatShortCurrency(bidVal)} exceeds the team's remaining purse of {formatShortCurrency(remainingPurse)}.
+                            </div>
+                          ) : bidVal > maxSafeBid ? (
+                            <div className="border-2 border-accent-amber bg-accent-amber/10 p-3 text-xs font-mono text-amber-600 dark:text-amber-400 shadow-[2px_2px_0px_rgba(245,158,11,0.2)]">
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                <span className="material-symbols-outlined text-sm">warning</span>
+                                SQUAD INCOMPLETION RISK
+                              </div>
+                              Bidding {formatShortCurrency(bidVal)} leaves {formatShortCurrency(simRemainingPurse)}, which is less than the {formatShortCurrency(requiredReserve)} needed to buy the remaining {remainingSlots} players at base price ({formatShortCurrency(basePrice)} each).
+                            </div>
+                          ) : bidVal > 0 ? (
+                            <div className="border-2 border-accent-green bg-accent-green/10 p-3 text-xs font-mono text-accent-green shadow-[2px_2px_0px_rgba(34,197,94,0.2)]">
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                SAFE BID
+                              </div>
+                              The team can afford this bid and still safely complete their squad of {targetSquadSize} players at base price.
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
