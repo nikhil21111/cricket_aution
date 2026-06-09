@@ -711,7 +711,7 @@ const LiveAuction = () => {
                 {/* Header Tag */}
                 <div className={`px-4 py-3 text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between transition-colors ${
                   isMarquee 
-                    ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600" 
+                    ? "bg-amber-500" 
                     : "bg-accent-crimson"
                 }`}>
                   <div className="flex items-center gap-2">
@@ -729,8 +729,8 @@ const LiveAuction = () => {
                   {/* Photo Section */}
                   <div className={`relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b-3 md:border-b-0 md:border-r-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-center overflow-hidden transition-all ${
                     isMarquee
-                      ? "bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-transparent"
-                      : "bg-gradient-to-br from-primary/10 to-transparent"
+                      ? "bg-amber-500/10"
+                      : "bg-primary/10"
                   }`}>
                     {currentPlayer.photo_url ? (
                       <img

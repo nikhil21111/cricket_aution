@@ -1851,7 +1851,7 @@ const TournamentLive = () => {
           justify-content: center;
           position: relative;
           overflow: hidden;
-          background: linear-gradient(160deg, var(--accent-cobalt) 0%, #0f172a 100%);
+          background: var(--bg-tertiary);
           align-self: stretch;
         }
         .player-img-col img {
@@ -2510,9 +2510,9 @@ const TournamentLive = () => {
                     <div
                       className="player-img-col"
                       style={{
-                        background: displayPlayer.color
-                          ? `linear-gradient(160deg, ${displayPlayer.color} 0%, #0f172a 100%)`
-                          : `linear-gradient(160deg, var(--accent-cobalt) 0%, #0f172a 100%)`,
+                        backgroundColor: displayPlayer.color
+                          ? `${displayPlayer.color}15`
+                          : "var(--bg-tertiary)",
                       }}
                     >
                       <div className="cat-stripe">
