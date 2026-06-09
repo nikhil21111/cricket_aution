@@ -338,7 +338,7 @@ const Tournaments = () => {
 
             <p className="text-text-secondary dark:text-text-secondary-dark text-sm mb-6 leading-relaxed">
               Are you sure you want to delete{" "}
-              <span className="text-accent-crimson font-bold">
+              <span className="text-primary font-bold">
                 "{deleteConfirm.name}"
               </span>
               ? This will permanently remove the tournament along with all its

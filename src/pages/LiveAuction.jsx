@@ -450,7 +450,7 @@ const LiveAuction = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 px-6 text-center">
         <div className="border-3 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-8 max-w-md shadow-[6px_6px_0px_var(--border-color)] flex flex-col items-center">
-          <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-accent-crimson/10 text-accent-crimson flex items-center justify-center mb-4">
+          <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-primary/10 text-primary flex items-center justify-center mb-4">
             <span className="material-symbols-outlined text-3xl">error</span>
           </div>
           <h2 className="font-display font-black text-xl uppercase tracking-wider mb-2">LIVE VIEW UNAVAILABLE</h2>
@@ -633,7 +633,7 @@ const LiveAuction = () => {
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] font-black uppercase text-accent-crimson tracking-wider">Public View</span>
+              <span className="font-mono text-[9px] font-black uppercase text-primary tracking-wider">Public View</span>
               <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse"></span>
             </div>
             <h1 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight truncate max-w-[200px] sm:max-w-xs md:max-w-md">
@@ -712,7 +712,7 @@ const LiveAuction = () => {
                 <div className={`px-4 py-3 text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between transition-colors ${
                   isMarquee 
                     ? "bg-amber-500" 
-                    : "bg-accent-crimson"
+                    : "bg-primary"
                 }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
@@ -1221,7 +1221,7 @@ const LiveAuction = () => {
                             return (
                               <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 flex items-center justify-between text-xs shadow-[1px_1px_0px_var(--border-color)]">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="font-mono font-black text-accent-crimson">#{idx + 1}</span>
+                                  <span className="font-mono font-black text-primary">#{idx + 1}</span>
                                   <div className="min-w-0">
                                     <p className="font-display font-bold uppercase truncate text-text-primary dark:text-slate-100">{p.name}</p>
                                     <p className="text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark uppercase">{team?.short_name || "TEAM"}</p>

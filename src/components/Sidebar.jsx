@@ -54,7 +54,7 @@ const Sidebar = ({ auctionState, tournament, tournamentId }) => {
           {/* Tournament Name if in tournament context */}
           {tournament && (
             <div className="mb-6 p-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[3px_3px_0px_var(--border-color)]">
-              <p className="text-[10px] text-accent-crimson uppercase font-mono font-bold tracking-wider mb-1">
+              <p className="text-[10px] text-primary uppercase font-mono font-bold tracking-wider mb-1">
                 CURRENT TOURNAMENT
               </p>
               <p className="text-text-primary dark:text-slate-100 font-display font-extrabold text-sm truncate">
