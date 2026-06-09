@@ -353,6 +353,23 @@ const LiveAuction = () => {
       .slice(0, 5);
   }, [players]);
 
+  const completedLots = useMemo(() => {
+    return [...players]
+      .filter((p) => p.status === "sold" || p.status === "unsold")
+      .sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+  }, [players]);
+
+  const getTeamTopBuy = (teamId) => {
+    const teamSoldPlayers = players
+      .filter((p) => p.team_id === teamId && p.status === "sold")
+      .sort((a, b) => (b.sold_price || 0) - (a.sold_price || 0));
+    return teamSoldPlayers[0] || null;
+  };
+
   const totalPurse = teams.reduce((sum, t) => sum + (t.total_purse || 0), 0);
   const remainingPurse = teams.reduce(
     (sum, t) => sum + (t.remaining_purse || 0),
@@ -777,35 +794,60 @@ const LiveAuction = () => {
               </div>
             )}
 
-            {/* Recently Completed Lots */}
-            {recentSolds.length > 0 && (
-              <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-5 shadow-[4px_4px_0px_var(--border-color)]">
-                <h3 className="font-display font-black text-sm uppercase tracking-widest mb-4 flex items-center gap-2 text-text-primary dark:text-slate-100">
-                  <span className="material-symbols-outlined text-[18px] text-accent-green">history</span>
-                  RECENTLY COMPLETED LOTS
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {recentSolds.map((p) => {
+            {/* Live Auction Timeline */}
+            <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-5 shadow-[4px_4px_0px_var(--border-color)]">
+              <h3 className="font-display font-black text-sm uppercase tracking-widest mb-4 flex items-center gap-2 text-text-primary dark:text-slate-100">
+                <span className="material-symbols-outlined text-[18px] text-accent-green">rss_feed</span>
+                LIVE AUCTION TIMELINE
+              </h3>
+              
+              {completedLots.length === 0 ? (
+                <div className="p-4 border border-dashed border-text-primary dark:border-text-secondary-dark text-center font-mono text-xs text-text-secondary dark:text-text-secondary-dark bg-background-secondary dark:bg-background-dark">
+                  NO AUCTION ACTIVITY RECORDED YET.
+                </div>
+              ) : (
+                <div className="relative pl-6 border-l-2 border-text-primary/30 dark:border-text-secondary-dark/30 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  {completedLots.map((p) => {
                     const team = teamById[p.team_id];
+                    const isSold = p.status === "sold";
                     return (
-                      <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-display font-bold text-xs uppercase truncate text-text-primary dark:text-slate-100">{p.name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase truncate">
-                              {team?.short_name || "TEAM"}
+                      <div key={p.id} className="relative">
+                        {/* Timeline Node Icon */}
+                        <span className={`absolute -left-[31px] top-1 size-4 border-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-center text-[8px] font-bold ${
+                          isSold ? "bg-accent-green text-white" : "bg-accent-amber text-white"
+                        }`}>
+                        </span>
+                        
+                        <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 shadow-[1px_1px_0px_var(--border-color)]">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className={`text-[8px] font-mono font-bold uppercase px-1 border ${
+                              isSold ? "bg-green-500/10 text-green-500 border-green-500/30" : "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                            }`}>
+                              {p.status}
+                            </span>
+                            <span className="text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark font-medium">
+                              LOT #{p.id.slice(0, 5)}
                             </span>
                           </div>
+                          
+                          <p className="font-display font-extrabold text-xs uppercase text-text-primary dark:text-slate-100 mt-1 leading-snug">
+                            {isSold ? (
+                              <span>
+                                {p.name} SOLD TO <span className="text-primary">{team?.name || "TEAM"}</span> FOR <span className="text-accent-green">{formatCurrency(p.sold_price || 0)}</span>
+                              </span>
+                            ) : (
+                              <span>
+                                {p.name} WENT UNSOLD AT BASE PRICE <span className="text-accent-amber">{formatCurrency(p.base_price || 0)}</span>
+                              </span>
+                            )}
+                          </p>
                         </div>
-                        <p className="font-mono text-xs font-black text-accent-green flex-shrink-0">
-                          {formatShortCurrency(p.sold_price || 0)}
-                        </p>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN: Interactive Dashboard Tabs */}
@@ -834,14 +876,14 @@ const LiveAuction = () => {
                   Player Pool
                 </button>
                 <button
-                  onClick={() => setActiveTab("stats")}
+                  onClick={() => setActiveTab("leaderboard")}
                   className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
-                    activeTab === "stats"
+                    activeTab === "leaderboard"
                       ? "bg-primary text-white"
                       : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
                   }`}
                 >
-                  Stats
+                  Leaderboard
                 </button>
               </div>
 
@@ -1028,26 +1070,41 @@ const LiveAuction = () => {
                   </div>
                 )}
 
-                {/* STATS TAB */}
-                {activeTab === "stats" && (
+                {/* LEADERBOARD TAB */}
+                {activeTab === "leaderboard" && (
                   <div className="space-y-4">
-                    {/* General metrics */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 text-center">
-                        <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase">SOLD LOTS</p>
-                        <p className="font-mono text-2xl font-black text-accent-green mt-0.5">
-                          {players.filter((p) => p.status === "sold").length}
-                        </p>
-                      </div>
-                      <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 text-center">
-                        <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase">REMAINING</p>
-                        <p className="font-mono text-2xl font-black text-accent-cobalt mt-0.5">
-                          {players.filter((p) => p.status === "available").length}
-                        </p>
-                      </div>
+                    {/* Standings Table */}
+                    <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark overflow-hidden shadow-[2px_2px_0px_var(--border-color)]">
+                      <table className="w-full text-left border-collapse font-mono text-xs">
+                        <thead>
+                          <tr className="border-b-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark font-display font-black uppercase tracking-wider text-[9px] sm:text-[10px]">
+                            <th className="p-3">Team</th>
+                            <th className="p-3 text-center">Squad</th>
+                            <th className="p-3 text-right">Spent</th>
+                            <th className="p-3 text-right">Purse</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teams.map((team) => {
+                            const teamSquad = players.filter((p) => p.team_id === team.id && p.status === "sold");
+                            const spent = (team.total_purse || 0) - (team.remaining_purse || 0);
+                            return (
+                              <tr key={team.id} className="border-b border-text-primary/20 dark:border-text-secondary-dark/20 hover:bg-background-light dark:hover:bg-card-dark transition-colors">
+                                <td className="p-3 font-display font-black uppercase tracking-wider flex items-center gap-1.5 truncate max-w-[80px] sm:max-w-none">
+                                  <span className="w-2 h-2 border border-text-primary dark:border-text-secondary-dark inline-block flex-shrink-0" style={{ backgroundColor: team.color || "#0db9f2" }}></span>
+                                  {team.short_name || team.name.slice(0, 3)}
+                                </td>
+                                <td className="p-3 text-center font-bold">{teamSquad.length}</td>
+                                <td className="p-3 text-right font-bold text-accent-green">{formatShortCurrency(spent)}</td>
+                                <td className="p-3 text-right font-bold text-text-primary dark:text-slate-100">{formatShortCurrency(team.remaining_purse || 0)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
 
-                    {/* Purse summary */}
+                    {/* Team Standings Summary details */}
                     <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-2">
                       <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
                         Purse statistics
@@ -1070,13 +1127,13 @@ const LiveAuction = () => {
                     {topBuys.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
-                          ★ Top 5 Expensive Lots
+                          ★ Top Signings
                         </p>
                         <div className="space-y-1.5">
                           {topBuys.map((p, idx) => {
                             const team = teamById[p.team_id];
                             return (
-                              <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 flex items-center justify-between text-xs">
+                              <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 flex items-center justify-between text-xs shadow-[1px_1px_0px_var(--border-color)]">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span className="font-mono font-black text-accent-crimson">#{idx + 1}</span>
                                   <div className="min-w-0">
