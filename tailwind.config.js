@@ -14,8 +14,8 @@ export default {
         "background-dark": "#0f172a", // Editorial Ink
         "card-dark": "#1e293b",
         "card-light": "#f8fafc",
-        "text-primary": "var(--text-primary)",
-        "text-secondary": "var(--text-secondary)",
+        "text-primary": "#0f172a",
+        "text-secondary": "#475569",
         "text-secondary-dark": "#94a3b8",
         "accent-cobalt": "#2563eb",
         "accent-green": "#10b981", // Pitch Green
