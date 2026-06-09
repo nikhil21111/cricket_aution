@@ -32,7 +32,6 @@ const Sidebar = ({ auctionState, tournament, tournamentId }) => {
 
   return (
     <aside className="relative overflow-hidden w-64 flex-shrink-0 border-r-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-background-dark hidden md:flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         <div className="p-6 pb-2">
           <div className="flex items-center gap-3 mb-6">

@@ -418,7 +418,6 @@ const TournamentTeams = () => {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total Purse Spent Card */}
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
               <div className="flex justify-between items-start">
                 <div>
@@ -466,7 +465,6 @@ const TournamentTeams = () => {
 
           {/* Players Sold Card */}
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10 flex flex-col justify-between h-full">
               <div className="flex justify-between items-start">
                 <div>
@@ -495,7 +493,6 @@ const TournamentTeams = () => {
 
           {/* Unsold Players Card */}
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 dark:from-orange-500/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10 flex flex-col justify-between h-full">
               <div className="flex justify-between items-start">
                 <div>
@@ -567,7 +564,6 @@ const TournamentTeams = () => {
             {selectedSquad ? (
               /* Selected Team Detail View */
               <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[4px_4px_0px_var(--border-color)]">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
                 {/* Team Header */}
                 <div className="relative z-10 p-4 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                   <div className="flex items-center gap-3">

@@ -68,7 +68,6 @@ const Dashboard = ({ teams, players, auctionState, refreshData }) => {
             
             {/* Hero Card */}
             <div className="col-span-1 md:col-span-2 relative group overflow-hidden rounded-2xl bg-card-dark border border-[#283539] shadow-lg transition-all hover:border-primary/50">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent"></div>
               <div className="relative z-10 p-6 h-full flex flex-col justify-end min-h-[200px]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-primary/20 backdrop-blur-sm p-2 rounded-lg text-primary">

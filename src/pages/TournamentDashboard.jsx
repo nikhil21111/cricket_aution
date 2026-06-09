@@ -279,7 +279,6 @@ const TournamentDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             {/* Hero Card */}
             <div className="col-span-1 md:col-span-2 relative group overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[4px_4px_0px_var(--border-color)] transition-all hover:shadow-[6px_6px_0px_var(--border-color)] hover:-translate-x-0.5 hover:-translate-y-0.5">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 p-6 h-full flex flex-col justify-end min-h-[200px]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="border-2 border-primary bg-primary/10 p-2 text-primary">
@@ -325,7 +324,6 @@ const TournamentDashboard = () => {
 
             {/* Stats Card: Total Teams */}
             <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 flex justify-between items-start">
                 <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 text-text-primary dark:text-slate-100">
                   <span className="material-symbols-outlined">groups</span>
@@ -351,7 +349,6 @@ const TournamentDashboard = () => {
 
             {/* Stats Card: Total Players */}
             <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 flex justify-between items-start">
                 <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 text-text-primary dark:text-slate-100">
                   <span className="material-symbols-outlined">person</span>
@@ -372,7 +369,6 @@ const TournamentDashboard = () => {
 
             {/* Team Management Card */}
             <div className="relative col-span-1 md:col-span-2 row-span-2 bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark flex flex-col overflow-hidden shadow-[4px_4px_0px_var(--border-color)]">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 p-5 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                 <div>
                   <h3 className="text-text-primary dark:text-slate-100 text-lg font-display font-black uppercase">Teams</h3>
@@ -472,7 +468,6 @@ const TournamentDashboard = () => {
 
             {/* Player Pool Card */}
             <div className="relative col-span-1 md:col-span-2 row-span-2 bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark flex flex-col overflow-hidden shadow-[4px_4px_0px_var(--border-color)]">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 p-5 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                 <div>
                   <h3 className="text-text-primary dark:text-slate-100 text-lg font-display font-black uppercase">Player Pool</h3>

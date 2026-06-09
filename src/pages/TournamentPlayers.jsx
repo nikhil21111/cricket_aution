@@ -307,7 +307,6 @@ const TournamentPlayers = () => {
         {/* Stats Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
               <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
                 Total Players
@@ -316,7 +315,6 @@ const TournamentPlayers = () => {
             </div>
           </div>
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 dark:from-amber-500/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
               <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
                 Available
@@ -327,7 +325,6 @@ const TournamentPlayers = () => {
             </div>
           </div>
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
               <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
                 Sold
@@ -338,7 +335,6 @@ const TournamentPlayers = () => {
             </div>
           </div>
           <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 dark:from-red-500/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
               <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
                 Unsold
