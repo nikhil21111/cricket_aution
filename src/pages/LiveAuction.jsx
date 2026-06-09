@@ -376,6 +376,18 @@ const LiveAuction = () => {
     0
   );
 
+  const soldPlayers = useMemo(() => {
+    return players.filter((p) => p.status === "sold");
+  }, [players]);
+
+  const totalSoldValue = useMemo(() => {
+    return soldPlayers.reduce((sum, p) => sum + (p.sold_price || 0), 0);
+  }, [soldPlayers]);
+
+  const avgSalePrice = useMemo(() => {
+    return soldPlayers.length > 0 ? totalSoldValue / soldPlayers.length : 0;
+  }, [soldPlayers, totalSoldValue]);
+
   const copyPublicLink = async () => {
     const url = `${window.location.origin}/live/${tournamentId}`;
     try {
