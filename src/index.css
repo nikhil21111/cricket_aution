@@ -749,31 +749,31 @@
 /* --- MODERN SPORTS EDITORIAL DESIGN SYSTEM --- */
 
 :root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: rgba(255, 255, 255, 0.75);
-  --bg-tertiary: rgba(241, 245, 249, 0.75);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --accent-crimson: #8b5cf6;
+  --accent-crimson: #e11d48;
   --accent-cobalt: #2563eb;
   --accent-green: #10b981;
-  --border-color: rgba(15, 23, 42, 0.08);
-  --shadow-sm: 0 4px 20px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 8px 32px 0 rgba(15, 23, 42, 0.1);
+  --border-color: #0f172a;
+  --shadow-sm: 4px 4px 0px #0f172a;
+  --shadow-md: 8px 8px 0px #0f172a;
 }
 
 html.dark {
-  --bg-primary: #080c14;
-  --bg-secondary: rgba(15, 23, 42, 0.65);
-  --bg-tertiary: rgba(30, 41, 59, 0.45);
-  --text-primary: #f9fafb;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #1f2937;
+  --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-crimson: #8b5cf6;
-  --accent-cobalt: #06b6d4;
-  --accent-green: #10b981;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --accent-crimson: #fb7185;
+  --accent-cobalt: #60a5fa;
+  --accent-green: #34d399;
+  --border-color: #f8fafc;
+  --shadow-sm: 4px 4px 0px #020617;
+  --shadow-md: 8px 8px 0px #020617;
 }
 
 body {
@@ -782,27 +782,24 @@ body {
   font-family: 'Source Sans 3', sans-serif;
 }
 
-/* Glassmorphism Overrides for Arbitrary Tailwind Colors */
+/* Redefining Glassmorphism Overrides to Editorial Grid Boxes */
 .bg-\[\#1c2e35\] {
   background-color: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
-  border: 1px solid var(--border-color) !important;
+  border: 2px solid var(--border-color) !important;
   box-shadow: var(--shadow-sm) !important;
-  border-radius: 12px !important;
+  border-radius: 0px !important;
 }
 
 .bg-\[\#1c2e35\]\/50 {
   background-color: var(--bg-tertiary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
   border: 1px solid var(--border-color) !important;
-  border-radius: 12px !important;
+  border-radius: 0px !important;
 }
 
 .bg-\[\#1c2e35\]\/30 {
   background-color: var(--bg-primary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 12px !important;
+  border: 1px dashed var(--border-color) !important;
+  border-radius: 0px !important;
 }
 
 .border-\[\#283539\] {
@@ -821,8 +818,8 @@ body {
 
 .bg-\[\#283539\] {
   background-color: var(--bg-secondary) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 12px !important;
+  border: 2px solid var(--border-color) !important;
+  border-radius: 0px !important;
 }
 
 .hover\:bg-\[\#3b4e54\]:hover {
@@ -832,58 +829,51 @@ body {
 
 .bg-\[\#16262c\] {
   background-color: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
-  border-bottom: 1px solid var(--border-color) !important;
+  border-bottom: 2px solid var(--border-color) !important;
 }
 
 .bg-\[\#161d20\] {
   background-color: var(--bg-primary) !important;
 }
 
-/* Glassmorphism Classes */
+/* Bento Card class mappings */
 .glass-card {
-  background: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid var(--border-color) !important;
-  box-shadow: var(--shadow-md) !important;
-  border-radius: 16px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--bg-secondary) !important;
+  border: 2px solid var(--border-color) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-radius: 0px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .glass-card:hover {
-  border-color: var(--accent-crimson) !important;
-  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.15) !important;
-  transform: translateY(-2px) !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px var(--border-color) !important;
+  border-color: var(--border-color) !important;
 }
 
-/* Animated Border Glow for Current Bidding Player */
+/* Animated Pulse Border for Active Auction Player */
 .active-player-glow {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--accent-crimson) !important;
-  box-shadow: 0 0 25px rgba(139, 92, 246, 0.25) !important;
-  border-radius: 12px !important;
-  animation: pulseGlow 3s ease-in-out infinite !important;
+  border: 3px solid var(--accent-crimson) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-radius: 0px !important;
+  animation: pulseBorder 1.5s infinite ease-in-out !important;
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 25px rgba(139, 92, 246, 0.25), inset 0 0 10px rgba(139, 92, 246, 0.1);
-    border-color: var(--accent-crimson) !important;
-  }
-  50% {
-    box-shadow: 0 0 35px rgba(139, 92, 246, 0.45), inset 0 0 15px rgba(139, 92, 246, 0.2);
-    border-color: var(--accent-crimson) !important;
-  }
+@keyframes pulseBorder {
+  0% { border-color: var(--border-color); box-shadow: 4px 4px 0 var(--border-color); }
+  50% { border-color: var(--accent-crimson); box-shadow: 4px 4px 0 var(--accent-crimson); }
+  100% { border-color: var(--border-color); box-shadow: 4px 4px 0 var(--border-color); }
 }
 
-/* Navigation Indicator Glow */
+/* Navigation active links */
 .nav-link-active {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.15)) !important;
-  border: 1px solid rgba(139, 92, 246, 0.45) !important;
-  color: #fff !important;
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.15) !important;
-  border-radius: 8px !important;
+  background-color: var(--bg-secondary) !important;
+  border: 2px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 3px 3px 0 var(--border-color) !important;
+  border-radius: 0px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
 }
 
 /* Form Inputs styling */
@@ -893,20 +883,18 @@ input:focus, textarea:focus, select:focus {
   background-color: var(--bg-primary) !important;
 }
 
-/* Sidebar Custom Accent */
+/* Layout overrides */
 aside {
   background: var(--bg-primary) !important;
-  border-right: 1px solid var(--border-color) !important;
+  border-right: 3px solid var(--border-color) !important;
 }
 
-/* Header Glass styling */
 header {
-  background: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  border-bottom: 3px solid var(--border-color) !important;
 }
 
-/* Glass Layout Overrides */
+/* Redesigned Brutalist & Layout Overrides */
 .bg-surface-dark,
 .bg-surface-darker,
 .bg-\[\#111618\],
@@ -915,10 +903,9 @@ header {
 .bg-\[\#283539\],
 .bg-\[\#16262c\] {
   background-color: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
-  border: 1px solid var(--border-color) !important;
+  border: 2px solid var(--border-color) !important;
   box-shadow: var(--shadow-sm) !important;
-  border-radius: 12px !important;
+  border-radius: 0px !important;
 }
 
 .bg-background-dark,
@@ -958,7 +945,6 @@ header {
 .bg-card-dark,
 .dark\:bg-card-dark {
   background-color: var(--bg-secondary) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
 }
 .bg-background-dark,
 .dark\:bg-background-dark {
@@ -976,18 +962,15 @@ header {
 /* Golden Marquee Glow Animation */
 @keyframes marqueeGlow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
-    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: 6px 6px 0px #d97706, 0 0 15px rgba(245, 158, 11, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
-    border-color: rgba(245, 158, 11, 0.9);
+    box-shadow: 6px 6px 0px #b45309, 0 0 25px rgba(245, 158, 11, 0.8);
   }
 }
 
 .marquee-glow {
   animation: marqueeGlow 3s ease-in-out infinite;
-  border-radius: 16px !important;
 }
 
 
