@@ -1804,8 +1804,9 @@ const TournamentLive = () => {
 
         /* PLAYER CARD */
         .player-card {
-          border: 3px solid var(--border-color);
+          border: 1px solid var(--border-color);
           background: var(--bg-secondary);
+          backdrop-filter: blur(16px) saturate(120%);
           box-shadow: var(--shadow-md);
           position: relative;
           flex: 1;
@@ -1813,24 +1814,24 @@ const TournamentLive = () => {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          animation: pulseBorder 1.8s infinite ease-in-out;
+          border-radius: 16px;
+          animation: pulseBorder 2s infinite ease-in-out;
         }
         .player-card.marquee-card-active {
-          animation: pulseMarqueeBorder 2s infinite ease-in-out;
+          animation: pulseMarqueeBorder 2.5s infinite ease-in-out;
         }
         @keyframes pulseBorder {
-          0%  { border-color: var(--border-color); box-shadow: var(--shadow-md); }
-          50% { border-color: var(--accent-crimson); box-shadow: 8px 8px 0 var(--accent-crimson); }
-          100%{ border-color: var(--border-color); box-shadow: var(--shadow-md); }
+          0%, 100% { border-color: var(--border-color); box-shadow: var(--shadow-md); }
+          50% { border-color: var(--accent-crimson); box-shadow: 0 0 20px rgba(139, 92, 246, 0.25); }
         }
         @keyframes pulseMarqueeBorder {
           0%, 100% {
-            border-color: #f59e0b;
-            box-shadow: 8px 8px 0px #d97706, 0 0 15px rgba(245, 158, 11, 0.4);
+            border-color: rgba(245, 158, 11, 0.6);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
           }
           50% {
-            border-color: #d97706;
-            box-shadow: 8px 8px 0px #b45309, 0 0 25px rgba(245, 158, 11, 0.8);
+            border-color: rgba(245, 158, 11, 0.9);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
           }
         }
         .player-inner {
@@ -1844,14 +1845,14 @@ const TournamentLive = () => {
           min-width: 240px;
           max-width: 360px;
           flex-shrink: 0;
-          border-right: 3px solid var(--border-color);
+          border-right: 1px solid var(--border-color);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           position: relative;
           overflow: hidden;
-          background: linear-gradient(160deg, var(--accent-cobalt) 0%, #0f172a 100%);
+          background: rgba(15, 23, 42, 0.4);
           align-self: stretch;
         }
         .player-img-col img {
@@ -2510,9 +2511,9 @@ const TournamentLive = () => {
                     <div
                       className="player-img-col"
                       style={{
-                        background: displayPlayer.color
-                          ? `linear-gradient(160deg, ${displayPlayer.color} 0%, #0f172a 100%)`
-                          : `linear-gradient(160deg, var(--accent-cobalt) 0%, #0f172a 100%)`,
+                        backgroundColor: displayPlayer.color
+                          ? `${displayPlayer.color}15`
+                          : "rgba(139, 92, 246, 0.1)",
                       }}
                     >
                       <div className="cat-stripe">

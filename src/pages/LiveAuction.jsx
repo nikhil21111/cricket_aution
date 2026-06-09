@@ -703,16 +703,16 @@ const LiveAuction = () => {
                 </p>
               </div>
             ) : currentPlayer ? (
-              <div className={`border-3 bg-background-light dark:bg-card-dark overflow-hidden transition-all ${
+              <div className={`overflow-hidden transition-all ${
                 isMarquee 
-                  ? "marquee-glow border-amber-500 dark:border-amber-400" 
-                  : "border-text-primary dark:border-text-secondary-dark shadow-[6px_6px_0px_var(--border-color)]"
+                  ? "marquee-glow border border-amber-500/40 bg-background-light dark:bg-card-dark/80" 
+                  : "glass-card border-none"
               }`}>
                 {/* Header Tag */}
-                <div className={`px-4 py-3 text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between transition-colors ${
+                <div className={`px-4 py-3 text-white border-b border-white/10 flex items-center justify-between transition-colors ${
                   isMarquee 
-                    ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600" 
-                    : "bg-accent-crimson"
+                    ? "bg-amber-500/90" 
+                    : "bg-primary/90"
                 }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
@@ -725,12 +725,12 @@ const LiveAuction = () => {
                   </span>
                 </div>
 
-                <div className="flex flex-col md:flex-row border-b-3 border-text-primary dark:border-text-secondary-dark">
+                <div className="flex flex-col md:flex-row border-b border-white/10">
                   {/* Photo Section */}
-                  <div className={`relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b-3 md:border-b-0 md:border-r-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-center overflow-hidden transition-all ${
+                  <div className={`relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b md:border-b-0 md:border-r border-white/10 flex items-center justify-center overflow-hidden transition-all ${
                     isMarquee
-                      ? "bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-transparent"
-                      : "bg-gradient-to-br from-primary/10 to-transparent"
+                      ? "bg-amber-500/10"
+                      : "bg-primary/10"
                   }`}>
                     {currentPlayer.photo_url ? (
                       <img
@@ -743,11 +743,11 @@ const LiveAuction = () => {
                         {getInitials(currentPlayer.name)}
                       </span>
                     )}
-                    <div className="absolute top-2 left-2 px-2 py-1 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark font-mono text-[10px] font-black uppercase">
+                    <div className="absolute top-2 left-2 px-2 py-1 border border-white/10 bg-background-light/85 dark:bg-card-dark/85 backdrop-blur-sm font-mono text-[10px] font-black uppercase rounded-md">
                       LOT #{currentPlayer.id.slice(0, 5)}
                     </div>
                     {isMarquee && (
-                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-500 text-white font-mono text-[8px] font-black uppercase tracking-wider border border-white/30 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-500 text-white font-mono text-[8px] font-black uppercase tracking-wider border border-white/20 rounded">
                         MARQUEE
                       </div>
                     )}
@@ -760,7 +760,7 @@ const LiveAuction = () => {
                         {currentPlayer.name}
                       </h2>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 border border-text-primary dark:border-text-secondary-dark text-xs font-mono font-bold uppercase ${
+                        <span className={`px-2 py-0.5 border border-white/10 text-xs font-mono font-bold uppercase rounded ${
                           currentPlayer.role === "batsman" ? "bg-blue-500/10 text-blue-500 font-bold" :
                           currentPlayer.role === "bowler" ? "bg-green-500/10 text-green-500 font-bold" :
                           currentPlayer.role === "all-rounder" ? "bg-orange-500/10 text-orange-500 font-bold" :
@@ -775,7 +775,7 @@ const LiveAuction = () => {
                     </div>
 
                     {/* Broadcast Bid Board */}
-                    <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-4 shadow-[4px_4px_0px_var(--border-color)]">
+                    <div className="border border-white/10 bg-background-secondary/50 dark:bg-background-dark/50 p-4 rounded-xl backdrop-blur-md">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                           <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
@@ -786,9 +786,9 @@ const LiveAuction = () => {
                           </p>
                         </div>
                         {highestBidder && (
-                          <div className="flex items-center gap-2 md:border-l-2 md:border-text-primary md:dark:border-text-secondary-dark md:pl-4">
+                          <div className="flex items-center gap-2 md:border-l md:border-white/10 md:pl-4">
                             <div
-                              className="size-10 border-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-center font-black text-sm uppercase"
+                              className="size-10 border border-white/10 flex items-center justify-center font-black text-sm uppercase rounded-lg"
                               style={{
                                 backgroundColor: `${highestBidder.color || "#2563eb"}20`,
                                 color: highestBidder.color || "#2563eb",

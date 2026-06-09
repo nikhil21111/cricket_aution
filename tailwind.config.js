@@ -8,34 +8,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        "primary": "#e11d48", // Editorial Crimson
-        "primary-dark": "#be123c",
-        "background-light": "#ffffff",
-        "background-dark": "#0f172a", // Editorial Ink
-        "card-dark": "#1e293b",
-        "card-light": "#f8fafc",
-        "text-primary": "#0f172a",
-        "text-secondary": "#475569",
-        "text-secondary-dark": "#94a3b8",
-        "accent-cobalt": "#2563eb",
-        "accent-green": "#10b981", // Pitch Green
-        "accent-red": "#ef4444",
-        "accent-amber": "#f59e0b",
+        "primary": "#8b5cf6", // Violet 500
+        "primary-dark": "#7c3aed", // Violet 600
+        "background-light": "#f8fafc", // Slate 50
+        "background-dark": "#080c14", // Deep midnight black
+        "card-dark": "rgba(15, 23, 42, 0.65)", // Frosted glass card
+        "card-hover": "rgba(30, 41, 59, 0.8)", // Glass hover card
+        "surface-dark": "rgba(30, 41, 59, 0.65)",
+        "surface-darker": "#080c14",
+        "text-secondary": "#94a3b8", // Slate 400
+        "accent-green": "#10b981", // Emerald 500 (Neon Green)
+        "accent-red": "#ef4444", // Red 500 (Neon Red)
       },
       fontFamily: {
-        "display": ["Outfit", "sans-serif"],
-        "body": ["Source Sans 3", "sans-serif"],
+        "display": ["Inter", "sans-serif"],
+        "body": ["Inter", "sans-serif"],
         "mono": ["Geist Mono", "monospace"],
-      },
-      borderRadius: {
-        DEFAULT: '0px',
-        'sm': '0px',
-        'md': '0px',
-        'lg': '0px',
-        'xl': '0px',
-        '2xl': '0px',
-        '3xl': '0px',
-        'full': '9999px',
       },
     },
   },
