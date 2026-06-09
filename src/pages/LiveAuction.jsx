@@ -22,6 +22,11 @@ const LiveAuction = () => {
   const [error, setError] = useState(null);
   const { theme, setTheme } = useTheme();
 
+  // Tab and filter states for the interactive UI
+  const [activeTab, setActiveTab] = useState("teams"); // 'teams', 'players', 'stats'
+  const [searchTerm, setSearchTerm] = useState("");
+  const [playerFilter, setPlayerFilter] = useState("all"); // 'all', 'available', 'sold', 'unsold'
+
   // Celebration states
   const [celebration, setCelebration] = useState(null);
   const [celebrationPlayer, setCelebrationPlayer] = useState(null);
@@ -313,6 +318,32 @@ const LiveAuction = () => {
     });
   }, [players]);
 
+  const filteredPlayers = useMemo(() => {
+    return sortedPlayers.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = playerFilter === "all" || p.status === playerFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [sortedPlayers, searchTerm, playerFilter]);
+
+  const recentSolds = useMemo(() => {
+    return [...players]
+      .filter((p) => p.status === "sold")
+      .sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 4);
+  }, [players]);
+
+  const topBuys = useMemo(() => {
+    return [...players]
+      .filter((p) => p.status === "sold")
+      .sort((a, b) => (b.sold_price || 0) - (a.sold_price || 0))
+      .slice(0, 5);
+  }, [players]);
+
   const totalPurse = teams.reduce((sum, t) => sum + (t.total_purse || 0), 0);
   const remainingPurse = teams.reduce(
     (sum, t) => sum + (t.remaining_purse || 0),
@@ -362,11 +393,11 @@ const LiveAuction = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-light dark:bg-background-dark dark:text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="size-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-slate-600 dark:text-text-secondary">
-            Loading live auction...
+      <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100">
+        <div className="border-3 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-8 shadow-[4px_4px_0px_var(--border-color)] flex flex-col items-center gap-4">
+          <div className="size-10 border-4 border-primary border-t-transparent animate-spin"></div>
+          <p className="font-mono text-sm font-bold uppercase tracking-wider">
+            Loading live auction stream...
           </p>
         </div>
       </div>
@@ -375,32 +406,28 @@ const LiveAuction = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-light dark:bg-background-dark dark:text-white px-6 text-center">
-        <div className="size-16 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4 dark:bg-red-500/10 dark:text-red-300">
-          <span className="material-symbols-outlined text-3xl">error</span>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 px-6 text-center">
+        <div className="border-3 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-8 max-w-md shadow-[6px_6px_0px_var(--border-color)] flex flex-col items-center">
+          <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-accent-crimson/10 text-accent-crimson flex items-center justify-center mb-4">
+            <span className="material-symbols-outlined text-3xl">error</span>
+          </div>
+          <h2 className="font-display font-black text-xl uppercase tracking-wider mb-2">LIVE VIEW UNAVAILABLE</h2>
+          <p className="font-mono text-xs text-text-secondary dark:text-text-secondary-dark mb-6 leading-relaxed">
+            {error}
+          </p>
+          <button
+            onClick={fetchAll}
+            className="h-11 px-6 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+          >
+            Retry
+          </button>
         </div>
-        <p className="text-lg font-bold mb-2">Live view unavailable</p>
-        <p className="text-sm text-slate-600 dark:text-text-secondary max-w-md mb-4">
-          {error}
-        </p>
-        <button
-          onClick={fetchAll}
-          className="h-11 px-5 rounded-xl bg-sky-500 text-text-primary dark:text-slate-100 font-bold shadow hover:bg-sky-600"
-        >
-          Retry
-        </button>
       </div>
     );
   }
 
   return (
-    <div
-      className={
-        light
-          ? "min-h-screen bg-slate-50 text-slate-900"
-          : "min-h-screen bg-background-light dark:bg-background-dark text-white"
-      }
-    >
+    <div className="bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200">
       {/* Sold Celebration - Fireworks + Card */}
       {celebration?.type === "sold" && (
         <>
@@ -553,423 +580,514 @@ const LiveAuction = () => {
         </>
       )}
 
-      <header className="sticky top-0 z-20 backdrop-blur bg-white/80 dark:bg-background-light dark:bg-background-dark/80 border-b border-slate-200 dark:border-[#283539] px-4 py-3 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-20 h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-6 border-b-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-background-dark">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             to="/"
-            className="size-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-300 dark:bg-[#1c2e35] dark:text-white"
+            className="size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 flex items-center justify-center hover:bg-background-tertiary transition-all shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
             aria-label="Back"
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </Link>
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.18em] font-semibold text-slate-500 dark:text-text-secondary">
-              Live Auction
-            </p>
-            <h1 className="text-lg font-black truncate">{tournament?.name}</h1>
-            <p className="text-xs text-slate-500 dark:text-text-secondary truncate">
-              {tournament?.description || "View-only live stream"}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] font-black uppercase text-accent-crimson tracking-wider">Public View</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse"></span>
+            </div>
+            <h1 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+              {tournament?.name}
+            </h1>
           </div>
         </div>
+
         <div className="flex items-center gap-2">
-          {/* Auction Status Badge */}
+          {/* Status Badge */}
           <span
-            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${statusConfig[auctionStatus].bgClass}`}
+            className={`hidden sm:flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1.5 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark ${statusConfig[auctionStatus].bgClass}`}
           >
             <span className={`w-2 h-2 rounded-full ${statusConfig[auctionStatus].dotClass}`}></span>
             {statusConfig[auctionStatus].label}
           </span>
+
           <button
             onClick={() => setTheme(light ? "dark" : "light")}
-            className="size-10 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-100 dark:bg-[#1c2e35] dark:border-[#283539] dark:text-white"
+            className="size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 flex items-center justify-center hover:bg-background-tertiary transition-all shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
             aria-label="Toggle theme"
           >
             <span className="material-symbols-outlined text-[20px]">
               {light ? "dark_mode" : "light_mode"}
             </span>
           </button>
+
           <button
             onClick={copyPublicLink}
-            className="h-10 px-4 rounded-xl bg-sky-500 text-text-primary dark:text-slate-100 font-semibold shadow hover:bg-sky-600 flex items-center gap-2"
+            className="h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-xs font-display font-bold uppercase tracking-wider flex items-center gap-2 shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">link</span>
-            Share
+            <span className="material-symbols-outlined text-[16px]">link</span>
+            <span className="hidden xs:inline">Share</span>
           </button>
         </div>
       </header>
 
-      <main className="p-4 sm:p-6 space-y-4 max-w-5xl mx-auto">
-        {/* Status summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div
-            className={`${
-              light
-                ? "bg-white border-slate-200"
-                : "bg-background-light dark:bg-card-dark border-[#283539]"
-            } rounded-2xl border p-4 shadow-sm`}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Mobile Status Bar (visible only on mobile) */}
+        <div className="flex sm:hidden items-center justify-between p-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark">
+          <span className="font-mono text-xs font-bold uppercase text-text-secondary dark:text-text-secondary-dark">Status:</span>
+          <span
+            className={`flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-1 border border-text-primary dark:border-text-secondary-dark ${statusConfig[auctionStatus].bgClass}`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-slate-600 dark:text-text-secondary">
-                Auction status
-              </p>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700 dark:bg-[#1c2e35] dark:text-white border border-slate-200 dark:border-[#283539]">
-                {auctionState?.current_player_id ? "In Progress" : "Waiting"}
-              </span>
-            </div>
-            <p className="text-2xl font-black mb-2">
-              {isLive ? "Live now" : "Not started"}
-            </p>
-            <p className="text-sm text-slate-500 dark:text-text-secondary">
-              Watch bids update in real time. Managers control the auction.
-            </p>
-          </div>
-
-          <div
-            className={`${
-              light
-                ? "bg-white border-slate-200"
-                : "bg-background-light dark:bg-card-dark border-[#283539]"
-            } rounded-2xl border p-4 shadow-sm flex flex-col gap-2`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-600 dark:text-text-secondary">
-                Purse overview
-              </p>
-              <span className="text-xs text-slate-500 dark:text-text-secondary">
-                {teams.length} teams
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-text-secondary">
-                Total purse
-              </span>
-              <span className="font-bold">{formatCurrency(totalPurse)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-text-secondary">
-                Remaining purse
-              </span>
-              <span className="font-bold">
-                {formatCurrency(remainingPurse)}
-              </span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-[#1c2e35] overflow-hidden">
-              <div
-                className="h-full bg-sky-500"
-                style={{
-                  width: `${
-                    totalPurse
-                      ? Math.max(
-                          0,
-                          Math.min(100, (remainingPurse / totalPurse) * 100)
-                        )
-                      : 0
-                  }%`,
-                }}
-              ></div>
-            </div>
-          </div>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[auctionStatus].dotClass}`}></span>
+            {statusConfig[auctionStatus].label}
+          </span>
         </div>
 
-        {/* Current lot */}
-        <div
-          className={`${
-            light
-              ? "bg-white border-slate-200"
-              : "bg-background-light dark:bg-card-dark border-[#283539]"
-          } rounded-2xl border p-4 shadow-sm`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-text-secondary font-semibold">
-                Current player
-              </p>
-              <h2 className="text-xl font-black">
-                {currentPlayer?.name || "Waiting for next player"}
-              </h2>
-            </div>
-            <span
-              className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                currentPlayer
-                  ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/30"
-                  : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-[#1c2e35] dark:text-text-secondary dark:border-[#283539]"
-              }`}
-            >
-              {currentPlayer ? "On the block" : "Idle"}
-            </span>
-          </div>
-
-          {currentPlayer ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              <div className="flex items-center gap-3">
-                <div className="size-16 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden dark:bg-[#1c2e35]">
-                  {currentPlayer.photo_url ? (
-                    <img
-                      src={currentPlayer.photo_url}
-                      alt={currentPlayer.name}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span className="material-symbols-outlined text-3xl text-slate-500 dark:text-text-secondary">
-                      person
-                    </span>
-                  )}
+        {/* 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* LEFT COLUMN: Active Lot Board & Recent Sales */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+            
+            {/* Active Lot Display */}
+            {auctionStatus === "paused" ? (
+              <div className="border-3 border-dashed border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-8 text-center shadow-[4px_4px_0px_var(--border-color)] flex flex-col items-center justify-center min-h-[300px]">
+                <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-accent-amber/10 flex items-center justify-center text-accent-amber mb-4">
+                  <span className="material-symbols-outlined text-3xl">pause_circle</span>
                 </div>
-                <div>
-                  <p className="font-bold text-lg leading-tight">
-                    {currentPlayer.name}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded-full border text-xs font-semibold ${
-                        roleStyles[currentPlayer.role] ||
-                        "bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {currentPlayer.role?.replace("-", " ")}
-                    </span>
-                    <span className="text-slate-500 dark:text-text-secondary">
-                      Base {formatShortCurrency(currentPlayer.base_price)}
-                    </span>
+                <h3 className="font-display font-black text-xl uppercase tracking-wider mb-2 text-text-primary dark:text-slate-100">
+                  AUCTION STREAM PAUSED
+                </h3>
+                <p className="text-sm text-text-secondary dark:text-text-secondary-dark max-w-sm">
+                  The host has paused the auction stream. Please stand by, updates will appear in real time once resumed.
+                </p>
+              </div>
+            ) : currentPlayer ? (
+              <div className="border-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[6px_6px_0px_var(--border-color)] overflow-hidden">
+                {/* Header Tag */}
+                <div className="px-4 py-3 bg-accent-crimson text-white border-b-3 border-text-primary dark:border-text-secondary-dark flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+                    <span className="font-display font-black text-xs uppercase tracking-widest">ACTIVE LOT ON BLOCK</span>
+                  </div>
+                  <span className="font-mono text-xs font-bold uppercase bg-white/20 px-2 py-0.5">
+                    {currentPlayer.role?.replace("-", " ")}
+                  </span>
+                </div>
+
+                <div className="flex flex-col md:flex-row border-b-3 border-text-primary dark:border-text-secondary-dark">
+                  {/* Photo Section */}
+                  <div className="relative w-full md:w-56 h-56 md:h-auto min-h-[224px] border-b-3 md:border-b-0 md:border-r-3 border-text-primary dark:border-text-secondary-dark bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center overflow-hidden">
+                    {currentPlayer.photo_url ? (
+                      <img
+                        src={currentPlayer.photo_url}
+                        alt={currentPlayer.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-5xl font-display font-black text-text-secondary/20 uppercase">
+                        {getInitials(currentPlayer.name)}
+                      </span>
+                    )}
+                    <div className="absolute top-2 left-2 px-2 py-1 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark font-mono text-[10px] font-black uppercase">
+                      LOT #{currentPlayer.id.slice(0, 5)}
+                    </div>
+                  </div>
+
+                  {/* Info / Bidding Section */}
+                  <div className="flex-1 p-6 flex flex-col justify-between gap-6">
+                    <div>
+                      <h2 className="font-display font-black text-3xl uppercase tracking-tight leading-none mb-2 text-text-primary dark:text-slate-100">
+                        {currentPlayer.name}
+                      </h2>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 border border-text-primary dark:border-text-secondary-dark text-xs font-mono font-bold uppercase ${
+                          currentPlayer.role === "batsman" ? "bg-blue-500/10 text-blue-500 font-bold" :
+                          currentPlayer.role === "bowler" ? "bg-green-500/10 text-green-500 font-bold" :
+                          currentPlayer.role === "all-rounder" ? "bg-orange-500/10 text-orange-500 font-bold" :
+                          "bg-purple-500/10 text-purple-500 font-bold"
+                        }`}>
+                          {currentPlayer.role?.replace("-", " ")}
+                        </span>
+                        <span className="font-mono text-xs text-text-secondary dark:text-text-secondary-dark font-semibold">
+                          BASE PRICE: {formatCurrency(currentPlayer.base_price)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Broadcast Bid Board */}
+                    <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-4 shadow-[4px_4px_0px_var(--border-color)]">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
+                            {highestBidder ? "CURRENT HIGHEST BID" : "OPENING BID"}
+                          </p>
+                          <p className="font-mono text-3xl sm:text-4xl font-black text-accent-green leading-none mt-1">
+                            {formatCurrency(auctionState?.highest_bid || currentPlayer.base_price || 0)}
+                          </p>
+                        </div>
+                        {highestBidder && (
+                          <div className="flex items-center gap-2 md:border-l-2 md:border-text-primary md:dark:border-text-secondary-dark md:pl-4">
+                            <div
+                              className="size-10 border-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-center font-black text-sm uppercase"
+                              style={{
+                                backgroundColor: `${highestBidder.color || "#2563eb"}20`,
+                                color: highestBidder.color || "#2563eb",
+                              }}
+                            >
+                              {highestBidder.logo_url ? (
+                                <img src={highestBidder.logo_url} alt={highestBidder.name} className="size-full object-cover" />
+                              ) : (
+                                highestBidder.short_name?.slice(0, 3) || "TM"
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
+                                LEADING BIDDER
+                              </p>
+                              <p className="font-display font-extrabold text-sm uppercase tracking-wide truncate max-w-[150px]">
+                                {highestBidder.name}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-[#16262c] dark:border-[#283539]">
-                <p className="text-xs text-slate-500 dark:text-text-secondary mb-1 font-semibold">
-                  Highest bid
-                </p>
-                <p className="text-2xl font-black">
-                  {formatCurrency(
-                    auctionState?.highest_bid || currentPlayer.base_price || 0
-                  )}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-text-secondary">
-                  by {highestBidder?.name || "—"}
+            ) : (
+              <div className="border-3 border-dashed border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-8 text-center shadow-[4px_4px_0px_var(--border-color)] flex flex-col items-center justify-center min-h-[300px]">
+                <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-accent-amber/10 flex items-center justify-center text-accent-amber mb-4">
+                  <span className="material-symbols-outlined text-3xl animate-bounce">hourglass_empty</span>
+                </div>
+                <h3 className="font-display font-black text-xl uppercase tracking-wider mb-2 text-text-primary dark:text-slate-100">
+                  WAITING FOR NEXT LOT
+                </h3>
+                <p className="text-sm text-text-secondary dark:text-text-secondary-dark max-w-sm">
+                  The auction organizer will select and present the next player shortly. Keep this page open to watch live bids.
                 </p>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-[#16262c] dark:border-[#283539]">
-                <p className="text-xs text-slate-500 dark:text-text-secondary mb-1 font-semibold">
-                  Team purse remaining
-                </p>
-                <p className="text-lg font-bold">
-                  {highestBidder
-                    ? formatCurrency(highestBidder.remaining_purse || 0)
-                    : "—"}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-600 dark:bg-[#16262c] dark:border-[#283539] dark:text-text-secondary">
-              The auction manager will start the next player soon. Keep this
-              page open to watch live bids.
-            </div>
-          )}
-        </div>
-
-        {/* Player list */}
-        <div
-          className={`${
-            light
-              ? "bg-white border-slate-200"
-              : "bg-background-light dark:bg-card-dark border-[#283539]"
-          } rounded-2xl border p-4 shadow-sm space-y-3`}
-        >
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-text-secondary font-semibold">
-                Players
-              </p>
-              <h3 className="text-lg font-black">Sold / available / unsold</h3>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/30">
-                Sold {players.filter((p) => p.status === "sold").length}
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
-                Available{" "}
-                {players.filter((p) => p.status === "available").length}
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200 dark:bg-yellow-500/10 dark:text-yellow-200 dark:border-yellow-500/30">
-                Unsold {players.filter((p) => p.status === "unsold").length}
-              </span>
-            </div>
-          </div>
-
-          {players.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-text-secondary">
-              Players will appear here once added.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {sortedPlayers.map((player) => {
-                const sold = player.status === "sold";
-                const unsold = player.status === "unsold";
-                const team = sold ? teamById[player.team_id] : null;
-                return (
-                  <div
-                    key={player.id}
-                    className={`${
-                      light
-                        ? "bg-slate-50 border-slate-200"
-                        : "bg-[#16262c] border-[#283539]"
-                    } border rounded-xl p-3 flex items-start gap-3`}
-                  >
-                    <div className="size-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:bg-[#1c2e35]">
-                      {player.photo_url ? (
-                        <img
-                          src={player.photo_url}
-                          alt={player.name}
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary">
-                          person
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold truncate">{player.name}</p>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                            sold
-                              ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/30"
-                              : unsold
-                              ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-yellow-500/10 dark:text-yellow-200 dark:border-yellow-500/30"
-                              : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30"
-                          }`}
-                        >
-                          {sold ? "Sold" : unsold ? "Unsold" : "Available"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span
-                          className={`px-2 py-0.5 rounded-full border ${
-                            roleStyles[player.role] ||
-                            "bg-slate-100 text-slate-700 border-slate-200"
-                          }`}
-                        >
-                          {player.role?.replace("-", " ")}
-                        </span>
-                        <span className="text-slate-500 dark:text-text-secondary">
-                          {sold
-                            ? `Sold for ${formatShortCurrency(
-                                player.sold_price || player.base_price || 0
-                              )}`
-                            : `Base ${formatShortCurrency(
-                                player.base_price || 0
-                              )}`}
-                        </span>
-                      </div>
-                      {sold && (
-                        <p className="text-xs text-slate-500 dark:text-text-secondary">
-                          Bought by {team?.name || "Team"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Teams & purse */}
-        <div
-          className={`${
-            light
-              ? "bg-white border-slate-200"
-              : "bg-background-light dark:bg-card-dark border-[#283539]"
-          } rounded-2xl border p-4 shadow-sm space-y-3`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-black">Teams & purse</h3>
-            <p className="text-xs text-slate-500 dark:text-text-secondary">
-              Tap a team to see its squad
-            </p>
-          </div>
-          <div className="space-y-3">
-            {teams.length === 0 && (
-              <p className="text-sm text-slate-500 dark:text-text-secondary">
-                No teams yet.
-              </p>
             )}
-            {teams.map((team) => {
-              const filled = team.total_purse
-                ? Math.max(
-                    0,
-                    Math.min(
-                      100,
-                      ((team.total_purse - (team.remaining_purse || 0)) /
-                        team.total_purse) *
-                        100
-                    )
-                  )
-                : 0;
-              return (
-                <details
-                  key={team.id}
-                  className={`${
-                    light
-                      ? "bg-slate-50 border-slate-200"
-                      : "bg-[#16262c] border-[#283539]"
-                  } border rounded-xl p-3`}
-                >
-                  <summary className="flex items-center justify-between gap-3 cursor-pointer">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="size-12 rounded-xl flex items-center justify-center font-bold text-sm overflow-hidden"
-                        style={{
-                          backgroundColor: `${team.color || "#0db9f2"}1a`,
-                          color: team.color || "#0db9f2",
-                        }}
-                      >
-                        {team.logo_url ? (
-                          <img
-                            src={team.logo_url}
-                            alt={team.name}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          team.short_name?.slice(0, 3) || team.name?.slice(0, 2)
-                        )}
+
+            {/* Recently Completed Lots */}
+            {recentSolds.length > 0 && (
+              <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-5 shadow-[4px_4px_0px_var(--border-color)]">
+                <h3 className="font-display font-black text-sm uppercase tracking-widest mb-4 flex items-center gap-2 text-text-primary dark:text-slate-100">
+                  <span className="material-symbols-outlined text-[18px] text-accent-green">history</span>
+                  RECENTLY COMPLETED LOTS
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {recentSolds.map((p) => {
+                    const team = teamById[p.team_id];
+                    return (
+                      <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-display font-bold text-xs uppercase truncate text-text-primary dark:text-slate-100">{p.name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase truncate">
+                              {team?.short_name || "TEAM"}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="font-mono text-xs font-black text-accent-green flex-shrink-0">
+                          {formatShortCurrency(p.sold_price || 0)}
+                        </p>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-bold truncate">{team.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-text-secondary">
-                          Remaining{" "}
-                          {formatShortCurrency(team.remaining_purse || 0)} /{" "}
-                          {formatShortCurrency(team.total_purse || 0)}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Interactive Dashboard Tabs */}
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col">
+            <div className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[4px_4px_0px_var(--border-color)] overflow-hidden flex flex-col h-full">
+              {/* Tab Bar */}
+              <div className="flex border-b-2 border-text-primary dark:border-text-secondary-dark">
+                <button
+                  onClick={() => setActiveTab("teams")}
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider border-r border-text-primary dark:border-text-secondary-dark transition-all ${
+                    activeTab === "teams"
+                      ? "bg-primary text-white"
+                      : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                  }`}
+                >
+                  Teams
+                </button>
+                <button
+                  onClick={() => setActiveTab("players")}
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider border-r border-text-primary dark:border-text-secondary-dark transition-all ${
+                    activeTab === "players"
+                      ? "bg-primary text-white"
+                      : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                  }`}
+                >
+                  Player Pool
+                </button>
+                <button
+                  onClick={() => setActiveTab("stats")}
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
+                    activeTab === "stats"
+                      ? "bg-primary text-white"
+                      : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                  }`}
+                >
+                  Stats
+                </button>
+              </div>
+
+              {/* Tab Content Panel */}
+              <div className="p-4 overflow-y-auto max-h-[500px] lg:max-h-[600px] flex-1">
+                
+                {/* TEAMS TAB */}
+                {activeTab === "teams" && (
+                  <div className="space-y-3">
+                    {teams.length === 0 ? (
+                      <p className="text-sm font-mono text-text-secondary dark:text-text-secondary-dark py-4 text-center">
+                        NO TEAMS REGISTERED YET.
+                      </p>
+                    ) : (
+                      teams.map((team) => {
+                        const filled = team.total_purse
+                          ? Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                ((team.total_purse - (team.remaining_purse || 0)) /
+                                  team.total_purse) *
+                                  100
+                              )
+                            )
+                          : 0;
+                        return (
+                          <details
+                            key={team.id}
+                            className="border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[2px_2px_0px_var(--border-color)] group open:shadow-[1px_1px_0px_var(--border-color)] open:translate-x-[1px] open:translate-y-[1px] transition-all"
+                          >
+                            <summary className="flex items-center justify-between p-3 cursor-pointer select-none">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className="size-10 border-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-center font-black text-xs uppercase"
+                                  style={{
+                                    backgroundColor: `${team.color || "#0db9f2"}15`,
+                                    color: team.color || "#0db9f2",
+                                  }}
+                                >
+                                  {team.logo_url ? (
+                                    <img
+                                      src={team.logo_url}
+                                      alt={team.name}
+                                      className="size-full object-cover"
+                                    />
+                                  ) : (
+                                    team.short_name?.slice(0, 3) || "TM"
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-display font-extrabold text-sm uppercase tracking-wide truncate text-text-primary dark:text-slate-100">
+                                    {team.name}
+                                  </p>
+                                  <p className="text-[10px] font-mono text-text-secondary dark:text-text-secondary-dark">
+                                    PURSE: {formatShortCurrency(team.remaining_purse || 0)} LEFT
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="material-symbols-outlined transition-transform duration-200 group-open:rotate-180 text-text-secondary dark:text-text-secondary-dark">
+                                expand_more
+                              </span>
+                            </summary>
+                            <div className="p-3 border-t border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark space-y-3">
+                              {/* Budget Progress Bar */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark uppercase font-bold">
+                                  <span>Spent Purse</span>
+                                  <span>{Math.round(filled)}%</span>
+                                </div>
+                                <div className="w-full h-2.5 border border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary transition-all duration-300"
+                                    style={{ width: `${filled}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                              <SquadList players={players} teamId={team.id} />
+                            </div>
+                          </details>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                {/* PLAYER POOL TAB */}
+                {activeTab === "players" && (
+                  <div className="space-y-4">
+                    {/* Search and Filters */}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary dark:text-text-secondary-dark material-symbols-outlined text-[18px]">
+                          search
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Search players..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full h-9 pl-9 pr-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 placeholder:text-text-secondary/50 font-mono text-xs tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[2px_2px_0px_var(--border-color)]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        {["all", "available", "sold", "unsold"].map((f) => (
+                          <button
+                            key={f}
+                            onClick={() => setPlayerFilter(f)}
+                            className={`py-1 text-[9px] font-mono font-bold uppercase border border-text-primary dark:border-text-secondary-dark transition-all ${
+                              playerFilter === f
+                                ? "bg-primary text-white"
+                                : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-secondary dark:text-text-secondary-dark"
+                            }`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Players List */}
+                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                      {filteredPlayers.length === 0 ? (
+                        <p className="text-xs font-mono text-text-secondary dark:text-text-secondary-dark py-4 text-center">
+                          NO MATCHING PLAYERS.
+                        </p>
+                      ) : (
+                        filteredPlayers.map((player) => {
+                          const sold = player.status === "sold";
+                          const unsold = player.status === "unsold";
+                          const team = sold ? teamById[player.team_id] : null;
+                          return (
+                            <div
+                              key={player.id}
+                              className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 flex items-center justify-between gap-3"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="size-8 border border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {player.photo_url ? (
+                                    <img
+                                      src={player.photo_url}
+                                      alt={player.name}
+                                      className="size-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary text-[16px]">
+                                      person
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-display font-bold text-xs uppercase truncate text-text-primary dark:text-slate-100">
+                                    {player.name}
+                                  </p>
+                                  <p className="text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark uppercase">
+                                    {player.role?.replace("-", " ")}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="text-right flex-shrink-0">
+                                <span
+                                  className={`inline-block px-1.5 py-0.5 border text-[8px] font-mono font-bold uppercase tracking-wider mb-1 ${
+                                    sold
+                                      ? "bg-green-500/10 text-green-500 border-green-500/30"
+                                      : unsold
+                                      ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                      : "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                                  }`}
+                                >
+                                  {player.status}
+                                </span>
+                                <p className="font-mono text-[10px] font-bold text-text-primary dark:text-slate-100">
+                                  {sold
+                                    ? formatShortCurrency(player.sold_price || 0)
+                                    : formatShortCurrency(player.base_price || 0)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* STATS TAB */}
+                {activeTab === "stats" && (
+                  <div className="space-y-4">
+                    {/* General metrics */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 text-center">
+                        <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase">SOLD LOTS</p>
+                        <p className="font-mono text-2xl font-black text-accent-green mt-0.5">
+                          {players.filter((p) => p.status === "sold").length}
+                        </p>
+                      </div>
+                      <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 text-center">
+                        <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase">REMAINING</p>
+                        <p className="font-mono text-2xl font-black text-accent-cobalt mt-0.5">
+                          {players.filter((p) => p.status === "available").length}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500 dark:text-text-secondary">
-                        Spent
+
+                    {/* Purse summary */}
+                    <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-2">
+                      <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
+                        Purse statistics
                       </p>
-                      <p className="font-bold">
-                        {formatShortCurrency(
-                          (team.total_purse || 0) - (team.remaining_purse || 0)
-                        )}
-                      </p>
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-text-secondary dark:text-text-secondary-dark">Total purse:</span>
+                        <span className="font-bold text-text-primary dark:text-slate-100">{formatShortCurrency(totalPurse)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-text-secondary dark:text-text-secondary-dark">Spent purse:</span>
+                        <span className="font-bold text-accent-green">{formatShortCurrency(totalPurse - remainingPurse)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-text-secondary dark:text-text-secondary-dark">Average price:</span>
+                        <span className="font-bold text-accent-cobalt">{formatShortCurrency(avgSalePrice)}</span>
+                      </div>
                     </div>
-                  </summary>
-                  <div className="mt-3 space-y-2">
-                    <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-[#1c2e35] overflow-hidden">
-                      <div
-                        className="h-full bg-sky-500"
-                        style={{ width: `${filled}%` }}
-                      ></div>
-                    </div>
-                    <SquadList players={players} teamId={team.id} />
+
+                    {/* Top buys */}
+                    {topBuys.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
+                          ★ Top 5 Expensive Lots
+                        </p>
+                        <div className="space-y-1.5">
+                          {topBuys.map((p, idx) => {
+                            const team = teamById[p.team_id];
+                            return (
+                              <div key={p.id} className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-mono font-black text-accent-crimson">#{idx + 1}</span>
+                                  <div className="min-w-0">
+                                    <p className="font-display font-bold uppercase truncate text-text-primary dark:text-slate-100">{p.name}</p>
+                                    <p className="text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark uppercase">{team?.short_name || "TEAM"}</p>
+                                  </div>
+                                </div>
+                                <span className="font-mono font-black text-accent-green">{formatShortCurrency(p.sold_price || 0)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </details>
-              );
-            })}
+                )}
+              </div>
+            </div>
           </div>
+
         </div>
       </main>
     </div>
@@ -982,8 +1100,8 @@ const SquadList = ({ players, teamId }) => {
   );
   if (squad.length === 0) {
     return (
-      <p className="text-sm text-slate-500 dark:text-text-secondary">
-        No players bought yet.
+      <p className="text-[10px] font-mono text-text-secondary dark:text-text-secondary-dark py-1">
+        NO PLAYERS BOUGHT YET.
       </p>
     );
   }
@@ -993,9 +1111,9 @@ const SquadList = ({ players, teamId }) => {
       {squad.map((player) => (
         <div
           key={player.id}
-          className="rounded-lg border border-slate-200 bg-white p-3 flex items-center gap-3 dark:bg-[#1c2e35] dark:border-[#283539]"
+          className="border border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark p-2 flex items-center gap-2.5"
         >
-          <div className="size-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:bg-[#283539]">
+          <div className="size-8 border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center overflow-hidden flex-shrink-0">
             {player.photo_url ? (
               <img
                 src={player.photo_url}
@@ -1003,26 +1121,17 @@ const SquadList = ({ players, teamId }) => {
                 className="size-full object-cover"
               />
             ) : (
-              <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary">
+              <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary text-[16px]">
                 person
               </span>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">{player.name}</p>
-            <div className="flex items-center gap-2 text-xs">
-              <span
-                className={`px-2 py-0.5 rounded-full border ${
-                  roleStyles[player.role] ||
-                  "bg-slate-100 text-slate-700 border-slate-200"
-                }`}
-              >
-                {player.role?.replace("-", " ")}
-              </span>
-              <span className="text-slate-500 dark:text-text-secondary">
-                {formatShortCurrency(
-                  player.sold_price || player.base_price || 0
-                )}
+            <p className="font-display font-bold text-xs uppercase truncate text-text-primary dark:text-slate-100">{player.name}</p>
+            <div className="flex items-center justify-between text-[9px] font-mono text-text-secondary dark:text-text-secondary-dark">
+              <span>{player.role?.replace("-", " ")}</span>
+              <span className="font-bold text-accent-green">
+                {formatShortCurrency(player.sold_price || player.base_price || 0)}
               </span>
             </div>
           </div>
