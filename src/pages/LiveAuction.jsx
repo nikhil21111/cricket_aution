@@ -28,16 +28,6 @@ const LiveAuction = () => {
   const [playerFilter, setPlayerFilter] = useState("all"); // 'all', 'available', 'sold', 'unsold'
   const [roleFilter, setRoleFilter] = useState("all"); // 'all', 'batsman', 'bowler', 'all-rounder', 'wicket-keeper'
 
-  // Strategy simulation state
-  const [calcTeamId, setCalcTeamId] = useState("");
-  const [calcBid, setCalcBid] = useState("");
-  const [targetSquadSize, setTargetSquadSize] = useState(15);
-
-  useEffect(() => {
-    if (teams.length > 0 && !calcTeamId) {
-      setCalcTeamId(teams[0].id);
-    }
-  }, [teams, calcTeamId]);
 
   // Celebration states
   const [celebration, setCelebration] = useState(null);
@@ -922,23 +912,13 @@ const LiveAuction = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab("leaderboard")}
-                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider border-r border-text-primary dark:border-text-secondary-dark transition-all ${
+                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
                     activeTab === "leaderboard"
                       ? "bg-primary text-white"
                       : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
                   }`}
                 >
                   Leaderboard
-                </button>
-                <button
-                  onClick={() => setActiveTab("strategy")}
-                  className={`flex-1 py-3 font-display font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${
-                    activeTab === "strategy"
-                      ? "bg-primary text-white"
-                      : "bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100"
-                  }`}
-                >
-                  Strategy
                 </button>
               </div>
 
@@ -1257,147 +1237,6 @@ const LiveAuction = () => {
                   </div>
                 )}
 
-                {/* STRATEGY TAB */}
-                {activeTab === "strategy" && (
-                  <div className="space-y-4">
-                    <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-3 shadow-[1px_1px_0px_var(--border-color)]">
-                      <p className="font-display font-black text-xs uppercase tracking-wider text-text-primary dark:text-slate-100">
-                        Bidding Impact Simulator
-                      </p>
-                      <p className="text-[10px] font-mono text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                        Calculate the impact of a mock bid on any team's remaining purse, and simulate squad completion safety.
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      {/* Select Team */}
-                      <div className="space-y-1">
-                        <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
-                          Select Team
-                        </label>
-                        <select
-                          value={calcTeamId}
-                          onChange={(e) => setCalcTeamId(e.target.value)}
-                          className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
-                        >
-                          {teams.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.name} ({formatShortCurrency(t.remaining_purse || 0)} left)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Target Squad Size */}
-                        <div className="space-y-1">
-                          <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
-                            Target Squad Size
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="30"
-                            value={targetSquadSize}
-                            onChange={(e) => setTargetSquadSize(Math.max(1, parseInt(e.target.value) || 0))}
-                            className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
-                          />
-                        </div>
-
-                        {/* Simulated Bid */}
-                        <div className="space-y-1">
-                          <label className="block font-mono text-[10px] font-bold text-text-secondary dark:text-text-secondary-dark uppercase">
-                            Simulated Bid (pts)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="e.g. 1500"
-                            value={calcBid}
-                            onChange={(e) => setCalcBid(e.target.value)}
-                            className="w-full h-9 px-3 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-primary shadow-[2px_2px_0px_var(--border-color)] rounded-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Simulation results */}
-                    {(() => {
-                      const selectedTeam = teams.find((t) => t.id === calcTeamId) || teams[0];
-                      if (!selectedTeam) return null;
-
-                      const currentSquadSize = players.filter((p) => p.team_id === selectedTeam.id && p.status === "sold").length;
-                      const remainingPurse = selectedTeam.remaining_purse || 0;
-                      const bidVal = parseInt(calcBid) || 0;
-                      const simRemainingPurse = remainingPurse - bidVal;
-                      const simSquadSize = currentSquadSize + 1;
-                      
-                      const remainingSlots = Math.max(0, targetSquadSize - simSquadSize);
-                      const basePrice = tournament?.default_base_price || 500;
-                      const requiredReserve = remainingSlots * basePrice;
-                      const maxSafeBid = remainingPurse - requiredReserve;
-
-                      return (
-                        <div className="space-y-3 pt-2">
-                          <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-3 space-y-2 shadow-[1px_1px_0px_var(--border-color)]">
-                            <p className="text-[10px] font-mono font-bold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">
-                              Simulation Summary
-                            </p>
-                            <div className="flex justify-between text-xs font-mono">
-                              <span className="text-text-secondary dark:text-text-secondary-dark">Current Squad:</span>
-                              <span className="font-bold">{currentSquadSize} players</span>
-                            </div>
-                            <div className="flex justify-between text-xs font-mono">
-                              <span className="text-text-secondary dark:text-text-secondary-dark">Simulated Squad Size:</span>
-                              <span className="font-bold text-primary">{simSquadSize} / {targetSquadSize}</span>
-                            </div>
-                            <div className="flex justify-between text-xs font-mono border-t border-dashed border-text-primary/20 dark:border-text-secondary-dark/20 pt-1.5">
-                              <span className="text-text-secondary dark:text-text-secondary-dark">Simulated Remaining Purse:</span>
-                              <span className={`font-bold ${simRemainingPurse < 0 ? "text-accent-crimson" : "text-accent-green"}`}>
-                                {formatShortCurrency(simRemainingPurse)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-xs font-mono border-t border-dashed border-text-primary/20 dark:border-text-secondary-dark/20 pt-1.5">
-                              <span className="text-text-secondary dark:text-text-secondary-dark font-semibold">Min Purse Reserved (for next {remainingSlots} slots):</span>
-                              <span className="font-bold">{formatShortCurrency(requiredReserve)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs font-mono">
-                              <span className="text-text-secondary dark:text-text-secondary-dark font-semibold">Max Safe Bid Limit:</span>
-                              <span className="font-bold text-accent-cobalt">{formatShortCurrency(Math.max(0, maxSafeBid))}</span>
-                            </div>
-                          </div>
-
-                          {/* Alerts & Warnings */}
-                          {bidVal > remainingPurse ? (
-                            <div className="border-2 border-accent-crimson bg-accent-crimson/10 p-3 text-xs font-mono text-accent-crimson shadow-[2px_2px_0px_rgba(239,68,68,0.2)]">
-                              <div className="flex items-center gap-2 font-bold mb-1">
-                                <span className="material-symbols-outlined text-sm">error</span>
-                                INSUFFICIENT FUNDS
-                              </div>
-                              This bid of {formatShortCurrency(bidVal)} exceeds the team's remaining purse of {formatShortCurrency(remainingPurse)}.
-                            </div>
-                          ) : bidVal > maxSafeBid ? (
-                            <div className="border-2 border-accent-amber bg-accent-amber/10 p-3 text-xs font-mono text-amber-600 dark:text-amber-400 shadow-[2px_2px_0px_rgba(245,158,11,0.2)]">
-                              <div className="flex items-center gap-2 font-bold mb-1">
-                                <span className="material-symbols-outlined text-sm">warning</span>
-                                SQUAD INCOMPLETION RISK
-                              </div>
-                              Bidding {formatShortCurrency(bidVal)} leaves {formatShortCurrency(simRemainingPurse)}, which is less than the {formatShortCurrency(requiredReserve)} needed to buy the remaining {remainingSlots} players at base price ({formatShortCurrency(basePrice)} each).
-                            </div>
-                          ) : bidVal > 0 ? (
-                            <div className="border-2 border-accent-green bg-accent-green/10 p-3 text-xs font-mono text-accent-green shadow-[2px_2px_0px_rgba(34,197,94,0.2)]">
-                              <div className="flex items-center gap-2 font-bold mb-1">
-                                <span className="material-symbols-outlined text-sm">check_circle</span>
-                                SAFE BID
-                              </div>
-                              The team can afford this bid and still safely complete their squad of {targetSquadSize} players at base price.
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
               </div>
             </div>
           </div>
