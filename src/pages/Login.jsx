@@ -33,25 +33,25 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-primary/20 text-primary mb-4">
+          <div className="inline-flex items-center justify-center size-16 border-2 border-[var(--border-color)] bg-primary/20 text-primary mb-4">
             <span className="material-symbols-outlined text-4xl">gavel</span>
           </div>
-          <h1 className="text-3xl font-black text-white">Auction Pro</h1>
+          <h1 className="text-3xl font-black text-[var(--text-primary)] font-display uppercase tracking-tight">Auction Pro</h1>
           <p className="text-text-secondary mt-2">
             Sign in to manage your tournaments
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-card-dark border border-[#283539] rounded-2xl p-6">
+        <div className="bg-[var(--bg-primary)] border-2 border-[var(--border-color)] shadow-[var(--shadow-md)] p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label className="block text-sm font-bold uppercase text-text-secondary mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -63,14 +63,14 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full h-12 pl-10 pr-4 bg-[#1c2e35] border border-[#283539] rounded-xl text-white placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors"
+                  className="w-full h-12 pl-10 pr-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label className="block text-sm font-bold uppercase text-text-secondary mb-2">
                 Password
               </label>
               <div className="relative">
@@ -82,7 +82,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full h-12 pl-10 pr-4 bg-[#1c2e35] border border-[#283539] rounded-xl text-white placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors"
+                  className="w-full h-12 pl-10 pr-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
             </div>
@@ -91,7 +91,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-background-dark font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-12 border-2 border-[var(--border-color)] bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

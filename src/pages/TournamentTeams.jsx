@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase, formatShortCurrency, uploadImage } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
 import toast from "react-hot-toast";
@@ -11,6 +12,7 @@ import autoTable from "jspdf-autotable";
 const TournamentTeams = () => {
   const { id: tournamentId } = useParams();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [tournament, setTournament] = useState(null);
   const [teams, setTeams] = useState([]);
@@ -344,7 +346,7 @@ const TournamentTeams = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background-dark">
+      <div className="h-screen w-full flex items-center justify-center bg-background-light dark:bg-background-dark">
         <div className="flex flex-col items-center gap-4">
           <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="text-text-secondary">Loading teams...</p>
@@ -354,47 +356,58 @@ const TournamentTeams = () => {
   }
 
   return (
-    <div className="bg-background-dark text-white font-display min-h-screen flex flex-col overflow-x-hidden">
+    <div className="bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-[#283539] bg-background-dark/90 backdrop-blur-md px-6 py-4 lg:px-10">
+      <header className="sticky top-0 z-50 h-20 flex-shrink-0 flex items-center justify-between px-6 border-b-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-background-dark">
         <div className="flex items-center gap-4">
           <Link
             to={`/tournament/${tournamentId}`}
-            className="flex items-center justify-center size-10 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-dark transition-colors"
+            className="flex items-center justify-center size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 hover:bg-background-tertiary transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
           >
             <span className="material-symbols-outlined text-[24px]">
               arrow_back
             </span>
           </Link>
           <div>
-            <h1 className="text-xl font-bold leading-tight tracking-tight text-white">
+            <h1 className="text-2xl font-display font-black tracking-tight uppercase leading-none text-text-primary dark:text-slate-100">
               Team Summary
             </h1>
-            <p className="text-xs text-text-secondary font-medium">
+            <p className="text-xs text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase mt-1">
               {tournament?.name}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center justify-center size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 hover:bg-background-tertiary transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
+            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle theme"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {theme === "dark" ? "light_mode" : "dark_mode"}
+            </span>
+          </button>
           <button
             onClick={() => setShowAddTeam(true)}
-            className="flex items-center justify-center px-4 h-10 rounded-lg bg-[#283539] text-white font-bold text-sm hover:bg-[#3b4e54] transition-colors"
+            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined mr-2">group_add</span>
+            <span className="material-symbols-outlined text-[18px]">group_add</span>
             Add Team
           </button>
           <Link
             to={`/tournament/${tournamentId}/players`}
-            className="flex items-center justify-center px-4 h-10 rounded-lg bg-[#283539] text-white font-bold text-sm hover:bg-[#3b4e54] transition-colors"
+            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined mr-2">people</span>
+            <span className="material-symbols-outlined text-[18px]">people</span>
             Players
           </Link>
           <Link
             to={`/tournament/${tournamentId}/live`}
-            className="flex items-center justify-center px-4 h-10 rounded-lg bg-primary text-background-dark font-bold text-sm hover:bg-primary-dark transition-colors"
+            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined mr-2">live_tv</span>
+            <span className="material-symbols-outlined text-[18px]">live_tv</span>
             Go Live
           </Link>
         </div>
@@ -403,97 +416,106 @@ const TournamentTeams = () => {
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 lg:p-8 flex flex-col gap-8">
         {/* Stats Section */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1 rounded-xl p-6 bg-card-dark border border-[#283539] relative overflow-hidden group">
-            <div className="absolute right-0 top-0 h-full w-1 bg-primary/50"></div>
-            <div className="flex justify-between items-start z-10">
-              <div>
-                <p className="text-text-secondary text-sm font-semibold uppercase tracking-wider">
-                  Total Purse Spent
-                </p>
-                <p className="text-3xl font-bold mt-2 tracking-tight">
-                  {formatShortCurrency(totalSpent)}
-                </p>
-              </div>
-              <span className="material-symbols-outlined text-primary text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
-                payments
-              </span>
-            </div>
-            {teams.length > 0 && (
-              <>
-                <div className="w-full bg-[#283539] h-1.5 mt-4 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full"
-                    style={{
-                      width: `${
-                        teams.reduce((s, t) => s + t.total_purse, 0) > 0
-                          ? (totalSpent /
-                              teams.reduce((s, t) => s + t.total_purse, 0)) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  ></div>
+          {/* Total Purse Spent Card */}
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                    Total Purse Spent
+                  </p>
+                  <p className="text-3xl font-display font-black mt-2 tracking-tight">
+                    {formatShortCurrency(totalSpent)}
+                  </p>
                 </div>
-                <p className="text-xs text-text-secondary mt-2 text-right">
-                  {teams.reduce((s, t) => s + t.total_purse, 0) > 0
-                    ? (
-                        (totalSpent /
-                          teams.reduce((s, t) => s + t.total_purse, 0)) *
-                        100
-                      ).toFixed(0)
-                    : 0}
-                  % of total budget
-                </p>
-              </>
-            )}
+                <span className="material-symbols-outlined text-primary text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
+                  payments
+                </span>
+              </div>
+              {teams.length > 0 && (
+                <>
+                  <div className="w-full bg-background-tertiary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark h-3 mt-4 overflow-hidden">
+                    <div
+                      className="bg-primary h-full"
+                      style={{
+                        width: `${
+                          teams.reduce((s, t) => s + t.total_purse, 0) > 0
+                            ? (totalSpent /
+                                teams.reduce((s, t) => s + t.total_purse, 0)) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
+                  <p className="text-xs font-mono font-bold text-text-secondary mt-2 text-right">
+                    {teams.reduce((s, t) => s + t.total_purse, 0) > 0
+                      ? (
+                          (totalSpent /
+                            teams.reduce((s, t) => s + t.total_purse, 0)) *
+                          100
+                        ).toFixed(0)
+                      : 0}
+                    % of total budget
+                  </p>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1 rounded-xl p-6 bg-card-dark border border-[#283539] relative overflow-hidden group">
-            <div className="absolute right-0 top-0 h-full w-1 bg-green-500/50"></div>
-            <div className="flex justify-between items-start z-10">
-              <div>
-                <p className="text-text-secondary text-sm font-semibold uppercase tracking-wider">
-                  Players Sold
-                </p>
-                <p className="text-3xl font-bold mt-2 tracking-tight">
+          {/* Players Sold Card */}
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                    Players Sold
+                  </p>
+                  <p className="text-3xl font-display font-black mt-2 tracking-tight">
+                    {soldPlayers}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-green-500 text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
+                  groups
+                </span>
+              </div>
+              <div className="flex gap-2 mt-4 text-xs font-mono font-bold text-text-secondary">
+                <span className="text-green-500 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">
+                    check_circle
+                  </span>{" "}
                   {soldPlayers}
-                </p>
+                </span>
+                out of {players.length} players
               </div>
-              <span className="material-symbols-outlined text-green-500 text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
-                groups
-              </span>
-            </div>
-            <div className="flex gap-2 mt-4 text-xs font-medium text-text-secondary">
-              <span className="text-green-500 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">
-                  check_circle
-                </span>{" "}
-                {soldPlayers}
-              </span>
-              out of {players.length} players
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 rounded-xl p-6 bg-card-dark border border-[#283539] relative overflow-hidden group">
-            <div className="absolute right-0 top-0 h-full w-1 bg-orange-500/50"></div>
-            <div className="flex justify-between items-start z-10">
-              <div>
-                <p className="text-text-secondary text-sm font-semibold uppercase tracking-wider">
-                  Unsold Players
-                </p>
-                <p className="text-3xl font-bold mt-2 tracking-tight">
-                  {unsoldPlayers}
-                </p>
+          {/* Unsold Players Card */}
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 dark:from-orange-500/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                    Unsold Players
+                  </p>
+                  <p className="text-3xl font-display font-black mt-2 tracking-tight">
+                    {unsoldPlayers}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-orange-500 text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
+                  person_off
+                </span>
               </div>
-              <span className="material-symbols-outlined text-orange-500 text-4xl opacity-20 group-hover:opacity-40 transition-opacity">
-                person_off
-              </span>
-            </div>
-            <div className="flex gap-2 mt-4 text-xs font-medium text-text-secondary">
-              <span>
-                Available:{" "}
-                {players.filter((p) => p.status === "available").length}
-              </span>
+              <div className="flex gap-2 mt-4 text-xs font-mono font-bold text-text-secondary">
+                <span>
+                  Available:{" "}
+                  {players.filter((p) => p.status === "available").length}
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -501,18 +523,18 @@ const TournamentTeams = () => {
         {/* Filters & Actions */}
         <section className="flex flex-col md:flex-row gap-4 justify-between items-center">
           <div className="w-full md:w-auto flex-1 max-w-2xl relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary dark:text-text-secondary-dark material-symbols-outlined">
               search
             </span>
             <input
-              className="w-full h-12 pl-12 pr-4 rounded-xl bg-card-dark border border-[#283539] focus:border-primary text-white placeholder-text-secondary transition-colors outline-none"
+              className="w-full h-12 pl-12 pr-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark focus:border-primary text-text-primary dark:text-slate-100 placeholder-text-secondary/50 font-mono text-sm tracking-tight outline-none shadow-[3px_3px_0px_var(--border-color)]"
               placeholder="Search teams by name..."
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
+          <div className="flex gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
             {[
               { key: "all", label: "All Teams" },
               { key: "high-budget", label: "High Budget" },
@@ -526,10 +548,10 @@ const TournamentTeams = () => {
                   setSelectedSquad(null);
                   setExpandedTeam(null);
                 }}
-                className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap px-4 py-2 border-2 text-xs font-display font-bold uppercase tracking-wider shadow-[2px_2px_0px_var(--border-color)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)] ${
                   filter === f.key
-                    ? "bg-primary/10 text-primary border border-primary/20 font-bold"
-                    : "bg-card-dark text-text-secondary border border-[#283539] hover:border-[#3b4e54]"
+                    ? "bg-primary text-white border-text-primary dark:border-text-secondary-dark"
+                    : "bg-background-light dark:bg-card-dark text-text-secondary dark:text-text-secondary-dark border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
                 }`}
               >
                 {f.label}
@@ -544,12 +566,13 @@ const TournamentTeams = () => {
           <section className="space-y-6">
             {selectedSquad ? (
               /* Selected Team Detail View */
-              <div className="bg-card-dark rounded-xl border border-primary/50 shadow-[0_0_20px_rgba(13,185,242,0.15)]">
+              <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[4px_4px_0px_var(--border-color)]">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
                 {/* Team Header */}
-                <div className="p-4 border-b border-[#283539] flex items-center justify-between">
+                <div className="relative z-10 p-4 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs border border-white/10 overflow-hidden"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-text-primary dark:text-slate-100 font-bold text-xs border border-white/10 overflow-hidden"
                       style={{ backgroundColor: selectedSquad.color }}
                     >
                       {selectedSquad.logo_url ? (
@@ -563,10 +586,10 @@ const TournamentTeams = () => {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">
+                      <h3 className="text-lg font-display font-black uppercase text-text-primary dark:text-slate-100">
                         {selectedSquad.name}
                       </h3>
-                      <p className="text-xs text-text-secondary">
+                      <p className="text-xs text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase mt-0.5">
                         {(() => {
                           const squadPlayers = players.filter(
                             (p) => p.team_id === selectedSquad.id
@@ -586,7 +609,7 @@ const TournamentTeams = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => downloadSquadPDF(selectedSquad)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-background-dark font-bold hover:bg-primary-dark transition-colors"
+                      className="flex items-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                     >
                       <span className="material-symbols-outlined text-lg">
                         download
@@ -595,7 +618,7 @@ const TournamentTeams = () => {
                     </button>
                     <button
                       onClick={() => setSelectedSquad(null)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#283539] text-text-secondary hover:text-white transition-colors"
+                      className="flex items-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                     >
                       <span className="material-symbols-outlined text-lg">
                         arrow_back
@@ -638,22 +661,22 @@ const TournamentTeams = () => {
                           return (
                             <div
                               key={role}
-                              className="bg-[#1c2e35] rounded-lg border border-[#283539] overflow-hidden"
+                              className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)]"
                             >
-                              <div className="px-3 py-2 border-b border-[#283539] bg-[#283539]/50">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+                              <div className="px-3 py-2 border-b-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark">
+                                <h5 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary dark:text-slate-100">
                                   {roleLabels[role] || role} (
                                   {rolePlayers.length})
                                 </h5>
                               </div>
-                              <div className="divide-y divide-[#283539]">
+                              <div className="divide-y-2 divide-text-primary dark:divide-text-secondary-dark">
                                 {rolePlayers.map((player) => (
                                   <div
                                     key={player.id}
-                                    className="px-3 py-2 flex items-center justify-between gap-2"
+                                    className="px-3 py-2 flex items-center justify-between gap-2 bg-background-light dark:bg-card-dark"
                                   >
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <div className="size-7 rounded-full bg-[#283539] flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                      <div className="size-7 rounded-none border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex-shrink-0 flex items-center justify-center overflow-hidden">
                                         {player.photo_url ? (
                                           <img
                                             src={player.photo_url}
@@ -667,18 +690,18 @@ const TournamentTeams = () => {
                                         )}
                                       </div>
                                       <div className="flex items-center gap-2 truncate">
-                                        <span className="text-sm text-white truncate">
+                                        <span className="text-sm font-display font-bold text-text-primary dark:text-slate-100 truncate">
                                           {player.name}
                                         </span>
                                         {player.icon_role &&
                                           player.icon_role !== "none" && (
-                                            <span className="text-[10px] px-2 py-0.5 rounded border border-primary/40 text-primary whitespace-nowrap">
+                                            <span className="text-[9px] px-1.5 py-0.5 border-2 border-primary/40 text-primary font-mono font-bold uppercase whitespace-nowrap">
                                               Icon
                                             </span>
                                           )}
                                       </div>
                                     </div>
-                                    <span className="text-xs font-bold text-primary whitespace-nowrap">
+                                    <span className="text-xs font-mono font-bold text-primary whitespace-nowrap">
                                       {formatShortCurrency(player.sold_price)}
                                     </span>
                                   </div>
@@ -697,7 +720,7 @@ const TournamentTeams = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {teams.length === 0 ? (
                   <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-                    <div className="size-20 rounded-full bg-card-dark flex items-center justify-center text-text-secondary mb-4">
+                    <div className="size-20 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center text-text-secondary mb-4">
                       <span className="material-symbols-outlined text-4xl">
                         search_off
                       </span>
@@ -729,14 +752,14 @@ const TournamentTeams = () => {
                       return (
                         <div
                           key={team.id}
-                          className="bg-card-dark rounded-xl border border-[#283539] p-4 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(13,185,242,0.1)] transition-all group"
+                          className="bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-4 shadow-[3px_3px_0px_var(--border-color)] hover:shadow-[4px_4px_0px_var(--border-color)] transition-all group"
                         >
                           <div
                             className="flex flex-col items-center text-center cursor-pointer"
                             onClick={() => setSelectedSquad(team)}
                           >
                             <div
-                              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-white/10 overflow-hidden mb-3 group-hover:scale-110 transition-transform"
+                              className="w-14 h-14 rounded-full flex items-center justify-center text-text-primary dark:text-slate-100 font-bold text-sm border-2 border-white/10 overflow-hidden mb-3 group-hover:scale-110 transition-transform"
                               style={{ backgroundColor: team.color }}
                             >
                               {team.logo_url ? (
@@ -749,26 +772,26 @@ const TournamentTeams = () => {
                                 team.short_name
                               )}
                             </div>
-                            <h3 className="text-sm font-bold text-white leading-tight truncate w-full">
+                            <h3 className="text-sm font-bold text-text-primary dark:text-slate-100 leading-tight truncate w-full">
                               {team.name}
                             </h3>
                             <p className="text-xs text-text-secondary mt-1">
                               {teamPlayers.length} Players
                             </p>
-                            <div className="mt-2 px-2 py-1 rounded bg-[#1c2e35] border border-[#283539]">
+                            <div className="mt-2 px-2 py-1 border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark">
                               <span className="text-xs font-medium text-primary">
                                 {formatShortCurrency(team.remaining_purse)}
                               </span>
                             </div>
                           </div>
                           {/* Edit/Delete Buttons */}
-                          <div className="flex gap-1 mt-3 pt-3 border-t border-[#283539]">
+                          <div className="flex gap-1 mt-3 pt-3 border-t-2 border-text-primary dark:border-text-secondary-dark">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditingTeam(team);
                               }}
-                              className="flex-1 flex items-center justify-center h-7 rounded bg-[#283539] text-white text-[10px] font-medium hover:bg-[#3b4e54] transition-colors"
+                              className="flex-1 flex items-center justify-center h-7 bg-background-tertiary dark:bg-background-dark text-text-primary dark:text-slate-100 text-[10px] font-display font-bold uppercase border border-text-primary dark:border-text-secondary-dark hover:bg-background-light transition-colors"
                             >
                               <span className="material-symbols-outlined text-[14px] mr-1">
                                 edit
@@ -780,7 +803,7 @@ const TournamentTeams = () => {
                                 e.stopPropagation();
                                 setDeleteConfirm(team);
                               }}
-                              className="flex items-center justify-center size-7 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                              className="flex items-center justify-center size-7 bg-red-500/10 text-red-400 border border-red-400 hover:bg-red-500/20 transition-colors"
                             >
                               <span className="material-symbols-outlined text-[14px]">
                                 delete
@@ -799,7 +822,7 @@ const TournamentTeams = () => {
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min">
             {filteredTeams.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-                <div className="size-20 rounded-full bg-card-dark flex items-center justify-center text-text-secondary mb-4">
+                   <div className="size-20 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center text-text-secondary mb-4">
                   <span className="material-symbols-outlined text-4xl">
                     search_off
                   </span>
@@ -823,23 +846,23 @@ const TournamentTeams = () => {
                 return (
                   <div
                     key={team.id}
-                    className={`bg-card-dark rounded-xl border transition-all cursor-pointer ${
+                    className={`bg-background-light dark:bg-card-dark border-2 transition-all cursor-pointer ${
                       isExpanded
-                        ? "col-span-1 md:col-span-2 row-span-2 border-primary/50 shadow-[0_0_20px_rgba(13,185,242,0.15)]"
-                        : "border-[#283539] hover:border-primary/50 hover:shadow-[0_0_15px_rgba(13,185,242,0.1)]"
+                        ? "col-span-1 md:col-span-2 row-span-2 border-primary shadow-[4px_4px_0px_var(--border-color)]"
+                        : "border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] hover:shadow-[4px_4px_0px_var(--border-color)]"
                     }`}
                     onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
                   >
                     {/* Team Header */}
                     <div
                       className={`p-5 ${
-                        isExpanded ? "border-b border-[#283539]" : ""
+                        isExpanded ? "border-b-2 border-text-primary dark:border-text-secondary-dark" : ""
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm border border-white/10 overflow-hidden"
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-text-primary dark:text-slate-100 font-bold text-sm border border-white/10 overflow-hidden"
                             style={{ backgroundColor: team.color }}
                           >
                             {team.logo_url ? (
@@ -853,7 +876,7 @@ const TournamentTeams = () => {
                             )}
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-white leading-tight">
+                            <h3 className="text-lg font-bold text-text-primary dark:text-slate-100 leading-tight">
                               {team.name}
                             </h3>
                             <p className="text-xs text-text-secondary">
@@ -871,13 +894,13 @@ const TournamentTeams = () => {
                           <span className="text-sm text-text-secondary">
                             Purse Remaining
                           </span>
-                          <span className="text-xl font-bold text-white">
+                          <span className="text-xl font-bold text-text-primary dark:text-slate-100">
                             {formatShortCurrency(team.remaining_purse)}
                           </span>
                         </div>
-                        <div className="w-full bg-[#283539] h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-background-tertiary dark:bg-background-dark h-2 overflow-hidden border border-text-primary dark:border-text-secondary-dark">
                           <div
-                            className="h-full rounded-full transition-all"
+                            className="h-full transition-all"
                             style={{
                               width: `${spentPercent}%`,
                               backgroundColor:
@@ -886,21 +909,21 @@ const TournamentTeams = () => {
                           ></div>
                         </div>
                         <div className="flex justify-between items-center pt-1">
-                          <div className="px-2 py-1 rounded bg-[#1c2e35] text-xs font-medium text-text-secondary border border-[#283539]">
+                          <div className="px-2 py-1 bg-background-secondary dark:bg-background-dark text-xs font-mono font-bold text-text-secondary border border-text-primary dark:border-text-secondary-dark">
                             Squad: {teamPlayers.length}/25
                           </div>
-                          <div className="px-2 py-1 rounded bg-[#1c2e35] text-xs font-medium text-text-secondary border border-[#283539]">
+                          <div className="px-2 py-1 bg-background-secondary dark:bg-background-dark text-xs font-mono font-bold text-text-secondary border border-text-primary dark:border-text-secondary-dark">
                             Spent: {formatShortCurrency(spent)}
                           </div>
                         </div>
                         {/* Edit/Delete Buttons */}
-                        <div className="flex gap-2 mt-3 pt-3 border-t border-[#283539]">
+                        <div className="flex gap-2 mt-3 pt-3 border-t-2 border-text-primary dark:border-text-secondary-dark">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingTeam(team);
                             }}
-                            className="flex-1 flex items-center justify-center gap-1 h-8 rounded-lg bg-[#283539] text-white text-xs font-medium hover:bg-[#3b4e54] transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1 h-8 bg-background-tertiary dark:bg-background-dark text-text-primary dark:text-slate-100 text-xs font-display font-bold uppercase border border-text-primary dark:border-text-secondary-dark hover:bg-background-light transition-colors"
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               edit
@@ -912,7 +935,7 @@ const TournamentTeams = () => {
                               e.stopPropagation();
                               setDeleteConfirm(team);
                             }}
-                            className="flex items-center justify-center size-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                            className="flex items-center justify-center size-8 bg-red-500/10 text-red-400 border border-red-400 hover:bg-red-500/20 transition-colors"
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               delete
@@ -948,11 +971,11 @@ const TournamentTeams = () => {
                               return rolePlayers.map((player) => (
                                 <div
                                   key={player.id}
-                                  className="flex items-center justify-between p-2 rounded-lg bg-[#1c2e35] border border-[#283539]"
+                                  className="flex items-center justify-between p-2 bg-background-secondary dark:bg-background-dark border border-text-primary dark:border-text-secondary-dark"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <div className="size-8 rounded-full bg-[#283539] flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                    <div className="size-8 rounded-full bg-background-tertiary dark:bg-background-dark flex-shrink-0 flex items-center justify-center overflow-hidden">
                                       {player.photo_url ? (
                                         <img
                                           src={player.photo_url}
@@ -966,11 +989,11 @@ const TournamentTeams = () => {
                                       )}
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-white font-medium text-xs truncate">
+                                      <p className="text-text-primary dark:text-slate-100 font-medium text-xs truncate">
                                         {player.name}
                                       </p>
                                       <span
-                                        className={`text-[10px] px-1.5 py-0.5 rounded border ${getRoleColor(
+                                        className={`text-[10px] px-1.5 py-0.5 border-2 ${getRoleColor(
                                           player.role
                                         )}`}
                                       >
@@ -997,16 +1020,16 @@ const TournamentTeams = () => {
       </main>
 
       {/* Trademark Footer */}
-      <div className="text-center py-4 text-text-secondary/50 text-xs border-t border-[#283539]">
+      <div className="text-center py-4 text-text-secondary/50 text-xs border-t-2 border-text-primary dark:border-text-secondary-dark">
         © {new Date().getFullYear()} Made by{" "}
         <span className="text-primary">Nikhil</span>
       </div>
 
       {/* Live Ticker */}
       {players.filter((p) => p.status === "sold").length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-surface-darker border-t border-[#283539] py-2 px-4 z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-background-secondary dark:bg-background-dark border-t-2 border-text-primary dark:border-text-secondary-dark py-2 px-4 z-40">
           <div className="flex items-center gap-4 text-sm">
-            <span className="px-2 py-0.5 rounded bg-primary text-background-dark text-xs font-bold uppercase">
+            <span className="px-2 py-0.5 bg-primary text-white text-xs font-display font-bold uppercase">
               Latest
             </span>
             <div className="overflow-hidden flex-1 relative">
@@ -1072,12 +1095,12 @@ const TournamentTeams = () => {
           title="Delete Team"
         >
           <div className="text-center">
-            <div className="size-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="size-16 border-2 border-red-400 bg-red-500/10 flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-3xl text-red-400">
                 warning
               </span>
             </div>
-            <p className="text-white text-lg font-medium mb-2">
+            <p className="text-text-primary dark:text-slate-100 text-lg font-medium mb-2">
               Are you sure you want to delete{" "}
               <span className="text-primary">{deleteConfirm.name}</span>?
             </p>
@@ -1088,13 +1111,13 @@ const TournamentTeams = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-11 rounded-lg bg-[#283539] text-white font-bold hover:bg-[#3b4e54] transition-colors"
+                className="flex-1 h-11 bg-background-tertiary dark:bg-card-dark text-text-primary dark:text-slate-100 font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark hover:bg-background-light transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteTeam(deleteConfirm.id)}
-                className="flex-1 h-11 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
+                className="flex-1 h-11 bg-red-500 text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark hover:bg-red-600 transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
               >
                 Delete
               </button>
@@ -1200,7 +1223,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
       {/* Logo Upload */}
       <div className="flex justify-center">
         <label className="cursor-pointer group">
-          <div className="size-24 rounded-full bg-[#283539] border-2 border-dashed border-[#3b4e54] group-hover:border-primary flex items-center justify-center overflow-hidden transition-colors">
+          <div className="size-24 rounded-full bg-background-tertiary dark:bg-background-dark border-2 border-dashed border-text-secondary dark:border-text-secondary-dark group-hover:border-primary flex items-center justify-center overflow-hidden transition-colors">
             {logoPreview ? (
               <img
                 src={logoPreview}
@@ -1235,7 +1258,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Mumbai Indians"
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+          className="w-full h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
 
@@ -1252,7 +1275,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
           }
           placeholder="e.g., MI"
           maxLength={4}
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors uppercase"
+          className="w-full h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors uppercase"
         />
       </div>
 
@@ -1268,7 +1291,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
             onChange={(e) =>
               setFormData({ ...formData, color: e.target.value })
             }
-            className="w-11 h-11 rounded-lg cursor-pointer bg-transparent border-0"
+            className="w-11 h-11 cursor-pointer bg-transparent border-0"
           />
           <input
             type="text"
@@ -1276,7 +1299,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
             onChange={(e) =>
               setFormData({ ...formData, color: e.target.value })
             }
-            className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white font-mono focus:outline-none focus:border-primary transition-colors"
+            className="flex-1 h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 font-mono focus:outline-none focus:border-primary transition-colors"
           />
         </div>
       </div>
@@ -1298,10 +1321,10 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
                   setShowCustomPurse(false);
                   setCustomPurseValue("");
                 }}
-                className={`h-10 rounded-lg text-sm font-bold transition-all ${
+                className={`h-10 text-sm font-bold transition-all ${
                   formData.total_purse === option.value && !showCustomPurse
-                    ? "bg-primary text-background-dark"
-                    : "bg-[#1c2e35] text-white hover:bg-[#283539]"
+                    ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-[var(--border-color)]"
                 }`}
               >
                 {option.label}
@@ -1313,10 +1336,10 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
           <button
             type="button"
             onClick={() => setShowCustomPurse(!showCustomPurse)}
-            className={`w-full h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`w-full h-10 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               showCustomPurse
-                ? "bg-primary text-background-dark"
-                : "bg-[#1c2e35] text-white hover:bg-[#283539] border border-dashed border-[#3b4e54]"
+                ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-color)]"
             }`}
           >
             <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -1331,12 +1354,12 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
                 value={customPurseValue}
                 onChange={handleCustomPurseChange}
                 placeholder="Enter custom points"
-                className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={applyCustomPurse}
-                className="px-4 h-11 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors"
+                className="px-4 h-11 bg-primary hover:bg-primary-dark text-white font-bold border-2 border-[var(--border-color)] transition-colors"
               >
                 Set
               </button>
@@ -1344,7 +1367,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
           )}
 
           {/* Current Value Display */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#1c2e35] border border-[#283539]">
+          <div className="flex items-center justify-between p-3 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark">
             <span className="text-text-secondary text-sm">
               Selected Budget:
             </span>
@@ -1355,7 +1378,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
 
           {/* Info about budget change */}
           {formData.total_purse !== team.total_purse && (
-            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <div className="p-3 bg-yellow-500/10 border-2 border-yellow-500/30">
               <p className="text-yellow-400 text-xs">
                 <span className="material-symbols-outlined text-[14px] align-middle mr-1">
                   info
@@ -1373,7 +1396,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-11 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full h-11 bg-primary hover:bg-primary-dark text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
       >
         {loading ? (
           <>

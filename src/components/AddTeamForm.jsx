@@ -129,7 +129,7 @@ const AddTeamForm = ({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Mumbai Indians"
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+          className="w-full h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
 
@@ -146,7 +146,7 @@ const AddTeamForm = ({
           }
           placeholder="e.g., MI"
           maxLength={4}
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors uppercase"
+          className="w-full h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors uppercase"
         />
       </div>
 
@@ -170,7 +170,7 @@ const AddTeamForm = ({
             onChange={(e) =>
               setFormData({ ...formData, color: e.target.value })
             }
-            className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white font-mono focus:outline-none focus:border-primary transition-colors"
+            className="flex-1 h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-primary transition-colors"
           />
         </div>
       </div>
@@ -192,10 +192,10 @@ const AddTeamForm = ({
                   setShowCustomPurse(false);
                   setCustomPurseValue("");
                 }}
-                className={`h-10 rounded-lg text-sm font-bold transition-all ${
+                className={`h-10 text-sm font-bold transition-all ${
                   formData.total_purse === option.value && !showCustomPurse
-                    ? "bg-primary text-background-dark"
-                    : "bg-[#1c2e35] text-white hover:bg-[#283539]"
+                    ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-[var(--border-color)]"
                 }`}
               >
                 {option.label}
@@ -207,10 +207,10 @@ const AddTeamForm = ({
           <button
             type="button"
             onClick={() => setShowCustomPurse(!showCustomPurse)}
-            className={`w-full h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`w-full h-10 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               showCustomPurse
-                ? "bg-primary text-background-dark"
-                : "bg-[#1c2e35] text-white hover:bg-[#283539] border border-dashed border-[#3b4e54]"
+                ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-color)]"
             }`}
           >
             <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -225,12 +225,12 @@ const AddTeamForm = ({
                 value={customPurseValue}
                 onChange={handleCustomPurseChange}
                 placeholder="Enter custom points"
-                className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={applyCustomPurse}
-                className="px-4 h-11 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors"
+                className="px-4 h-11 bg-primary hover:bg-primary-dark text-white font-bold border-2 border-[var(--border-color)] transition-colors"
               >
                 Set
               </button>

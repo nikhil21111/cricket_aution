@@ -3,6 +3,7 @@ import { Fireworks } from "fireworks-js";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { supabase, formatShortCurrency, formatCurrency } from "../lib/supabase";
+import { useTheme } from "../context/ThemeContext";
 
 const roleStyles = {
   batsman: "bg-blue-100 text-blue-700 border-blue-200",
@@ -13,14 +14,13 @@ const roleStyles = {
 
 const LiveAuction = () => {
   const { id: tournamentId } = useParams();
-
   const [tournament, setTournament] = useState(null);
   const [teams, setTeams] = useState([]);
   const [players, setPlayers] = useState([]);
   const [auctionState, setAuctionState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [theme, setTheme] = useState("dark");
+  const { theme, setTheme } = useTheme();
 
   // Celebration states
   const [celebration, setCelebration] = useState(null);
@@ -98,15 +98,6 @@ const LiveAuction = () => {
       }
     };
   }, [celebration]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  }, [theme]);
 
   useEffect(() => {
     if (!tournamentId) return;
@@ -371,7 +362,7 @@ const LiveAuction = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-dark dark:text-white">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-light dark:bg-background-dark dark:text-white">
         <div className="flex flex-col items-center gap-4">
           <div className="size-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-sm text-slate-600 dark:text-text-secondary">
@@ -384,7 +375,7 @@ const LiveAuction = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-dark dark:text-white px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 dark:bg-background-light dark:bg-background-dark dark:text-white px-6 text-center">
         <div className="size-16 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4 dark:bg-red-500/10 dark:text-red-300">
           <span className="material-symbols-outlined text-3xl">error</span>
         </div>
@@ -394,7 +385,7 @@ const LiveAuction = () => {
         </p>
         <button
           onClick={fetchAll}
-          className="h-11 px-5 rounded-xl bg-sky-500 text-white font-bold shadow hover:bg-sky-600"
+          className="h-11 px-5 rounded-xl bg-sky-500 text-text-primary dark:text-slate-100 font-bold shadow hover:bg-sky-600"
         >
           Retry
         </button>
@@ -407,7 +398,7 @@ const LiveAuction = () => {
       className={
         light
           ? "min-h-screen bg-slate-50 text-slate-900"
-          : "min-h-screen bg-background-dark text-white"
+          : "min-h-screen bg-background-light dark:bg-background-dark text-white"
       }
     >
       {/* Sold Celebration - Fireworks + Card */}
@@ -562,7 +553,7 @@ const LiveAuction = () => {
         </>
       )}
 
-      <header className="sticky top-0 z-20 backdrop-blur bg-white/80 dark:bg-background-dark/80 border-b border-slate-200 dark:border-[#283539] px-4 py-3 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-20 backdrop-blur bg-white/80 dark:bg-background-light dark:bg-background-dark/80 border-b border-slate-200 dark:border-[#283539] px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             to="/"
@@ -600,7 +591,7 @@ const LiveAuction = () => {
           </button>
           <button
             onClick={copyPublicLink}
-            className="h-10 px-4 rounded-xl bg-sky-500 text-white font-semibold shadow hover:bg-sky-600 flex items-center gap-2"
+            className="h-10 px-4 rounded-xl bg-sky-500 text-text-primary dark:text-slate-100 font-semibold shadow hover:bg-sky-600 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">link</span>
             Share
@@ -615,7 +606,7 @@ const LiveAuction = () => {
             className={`${
               light
                 ? "bg-white border-slate-200"
-                : "bg-card-dark border-[#283539]"
+                : "bg-background-light dark:bg-card-dark border-[#283539]"
             } rounded-2xl border p-4 shadow-sm`}
           >
             <div className="flex items-center justify-between mb-2">
@@ -638,7 +629,7 @@ const LiveAuction = () => {
             className={`${
               light
                 ? "bg-white border-slate-200"
-                : "bg-card-dark border-[#283539]"
+                : "bg-background-light dark:bg-card-dark border-[#283539]"
             } rounded-2xl border p-4 shadow-sm flex flex-col gap-2`}
           >
             <div className="flex items-center justify-between">
@@ -686,7 +677,7 @@ const LiveAuction = () => {
           className={`${
             light
               ? "bg-white border-slate-200"
-              : "bg-card-dark border-[#283539]"
+              : "bg-background-light dark:bg-card-dark border-[#283539]"
           } rounded-2xl border p-4 shadow-sm`}
         >
           <div className="flex items-center justify-between mb-3">
@@ -783,7 +774,7 @@ const LiveAuction = () => {
           className={`${
             light
               ? "bg-white border-slate-200"
-              : "bg-card-dark border-[#283539]"
+              : "bg-background-light dark:bg-card-dark border-[#283539]"
           } rounded-2xl border p-4 shadow-sm space-y-3`}
         >
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -891,7 +882,7 @@ const LiveAuction = () => {
           className={`${
             light
               ? "bg-white border-slate-200"
-              : "bg-card-dark border-[#283539]"
+              : "bg-background-light dark:bg-card-dark border-[#283539]"
           } rounded-2xl border p-4 shadow-sm space-y-3`}
         >
           <div className="flex items-center justify-between">

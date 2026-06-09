@@ -173,7 +173,7 @@ const AddPlayerForm = ({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Virat Kohli"
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+          className="w-full h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
 
@@ -239,7 +239,7 @@ const AddPlayerForm = ({
                 {item.icon}
               </span>
               <div className="leading-tight">
-                <p className="text-sm font-semibold text-white">{item.label}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{item.label}</p>
                 <p className="text-[11px] text-text-secondary/80">
                   {item.description}
                 </p>
@@ -313,10 +313,10 @@ const AddPlayerForm = ({
                   setShowCustomPrice(false);
                   setCustomPriceValue("");
                 }}
-                className={`h-10 rounded-lg text-sm font-bold transition-all ${
+                className={`h-10 text-sm font-bold transition-all ${
                   formData.base_price === option.value && !showCustomPrice
-                    ? "bg-primary text-background-dark"
-                    : "bg-[#1c2e35] text-white hover:bg-[#283539]"
+                    ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-[var(--border-color)]"
                 }`}
               >
                 {option.label}
@@ -328,10 +328,10 @@ const AddPlayerForm = ({
           <button
             type="button"
             onClick={() => setShowCustomPrice(!showCustomPrice)}
-            className={`w-full h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`w-full h-10 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               showCustomPrice
-                ? "bg-primary text-background-dark"
-                : "bg-[#1c2e35] text-white hover:bg-[#283539] border border-dashed border-[#3b4e54]"
+                ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-color)]"
             }`}
           >
             <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -346,7 +346,7 @@ const AddPlayerForm = ({
                 value={customPriceValue}
                 onChange={handleCustomPriceChange}
                 placeholder="Enter custom points"
-                className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 type="button"

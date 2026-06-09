@@ -10,10 +10,10 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       ></div>
       
       {/* Modal Content */}
-      <div className="relative bg-card-dark border border-[#283539] rounded-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
+      <div className="relative bg-background-light dark:bg-card-dark border border-[#283539] rounded-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#283539]">
-          <h3 className="text-white text-lg font-bold">{title}</h3>
+          <h3 className="text-text-primary dark:text-slate-100 text-lg font-bold">{title}</h3>
           <button 
             onClick={onClose}
             className="size-8 rounded-lg bg-[#283539] hover:bg-[#3b4e54] flex items-center justify-center text-text-secondary hover:text-white transition-colors"

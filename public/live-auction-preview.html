@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Auction — Design Preview | Cricket Auction Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Geist+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569;
+      --accent-crimson: #e11d48; --accent-cobalt: #2563eb;
+      --accent-green: #10b981; --accent-amber: #f59e0b;
+      --border-color: #0f172a;
+      --shadow-sm: 4px 4px 0px #0f172a; --shadow-md: 8px 8px 0px #0f172a;
+      --font-display: 'Outfit', sans-serif; --font-body: 'Source Sans 3', sans-serif; --font-mono: 'Geist Mono', monospace;
+    }
+    html.dark {
+      --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #162032;
+      --text-primary: #f8fafc; --text-secondary: #94a3b8;
+      --accent-crimson: #fb7185; --accent-cobalt: #60a5fa;
+      --accent-green: #34d399; --accent-amber: #fbbf24;
+      --border-color: #f8fafc;
+      --shadow-sm: 4px 4px 0px #f8fafc; --shadow-md: 8px 8px 0px #f8fafc;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.15s, border-color 0.15s, color 0.15s; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); display: flex; flex-direction: column; }
+    h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); } ::-webkit-scrollbar-thumb { background: var(--border-color); }
+
+    /* HEADER */
+    /* HEADER TICKER */
+    .app-header { background: var(--text-primary); color: var(--bg-primary); flex-shrink: 0; }
+    .ticker-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--bg-tertiary);
+      border-bottom: 2px solid var(--border-color);
+      height: 34px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .ticker-title {
+      background: var(--accent-crimson);
+      color: #fff;
+      padding: 0 0.75rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      text-transform: uppercase;
+      font-family: var(--font-display);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      border-right: 2px solid var(--border-color);
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .ticker-content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      position: relative;
+      height: 100%;
+    }
+    .ticker-items {
+      display: inline-flex;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker-slide 20s linear infinite;
+    }
+    @keyframes ticker-slide {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 2rem;
+      text-transform: uppercase;
+    }
+    .ticker-item-team {
+      color: var(--text-primary);
+      font-weight: 800;
+      margin-right: 0.4rem;
+    }
+    .ticker-item-amount {
+      color: var(--accent-crimson);
+      font-weight: 700;
+      margin-right: 0.4rem;
+    }
+    .ticker-item-time {
+      color: var(--text-secondary);
+      font-size: 0.62rem;
+    }
+    .ticker-clock-box {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-left: 2px solid var(--border-color);
+      padding: 0 0.75rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent-green); animation:blink 1.2s infinite; }
+    .main-row { display:flex; justify-content:space-between; align-items:center; padding:0.7rem 1.5rem; gap:0.75rem; flex-wrap:wrap; }
+    .header-left { display:flex; align-items:center; gap:0.75rem; }
+    .back-btn { width:34px; height:34px; border:2px solid var(--bg-primary); background:transparent; color:var(--bg-primary); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; box-shadow:2px 2px 0 var(--bg-primary); }
+    .back-btn:hover { background:var(--bg-primary); color:var(--text-primary); }
+    .header-title { font-size:1.3rem; color:var(--bg-primary); }
+    .badge { background:var(--accent-crimson); color:#fff; font-family:var(--font-mono); font-size:0.65rem; font-weight:700; padding:0.1rem 0.45rem; border:1px solid var(--bg-primary); text-transform:uppercase; }
+    .header-right { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+    .status-pill { display:flex; align-items:center; gap:0.35rem; border:2px solid var(--bg-primary); padding:0.28rem 0.7rem; font-family:var(--font-mono); font-size:0.65rem; font-weight:700; text-transform:uppercase; color:var(--bg-primary); }
+    .ctrl-btn { border:2px solid; padding:0.28rem 0.7rem; font-family:var(--font-mono); font-size:0.62rem; font-weight:700; cursor:pointer; text-transform:uppercase; background:transparent; }
+    .ctrl-btn.pause { border-color:var(--accent-amber); color:var(--accent-amber); }
+    .ctrl-btn.end { border-color:var(--accent-crimson); color:var(--accent-crimson); }
+    .ctrl-btn:active { transform:translate(1px,1px); }
+    .bid-clock { display:flex; align-items:center; border:2px solid var(--bg-primary); box-shadow:3px 3px 0 var(--bg-primary); }
+    .clock-lbl { font-family:var(--font-display); font-size:0.62rem; font-weight:800; text-transform:uppercase; padding:0.35rem 0.5rem; border-right:2px solid var(--bg-primary); background:var(--accent-amber); color:#000; }
+    .clock-val { font-family:var(--font-mono); font-size:1rem; font-weight:700; padding:0.25rem 0.65rem; color:var(--bg-primary); }
+    .theme-btn { background:transparent; border:2px solid var(--bg-primary); color:var(--bg-primary); padding:0.28rem 0.7rem; font-family:var(--font-mono); font-size:0.62rem; font-weight:700; cursor:pointer; text-transform:uppercase; box-shadow:2px 2px 0 var(--bg-primary); }
+    .theme-btn:active { transform:translate(1px,1px); box-shadow:1px 1px 0 var(--bg-primary); }
+
+    /* LAYOUT — full-height, no page scroll */
+    .page-body { display:flex; flex:1; min-height:0; overflow:hidden; }
+    .main {
+      flex: 1;
+      overflow: hidden;
+      padding: 0.85rem 1.25rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      /* space for fixed bottom console — adjust if console height changes */
+      padding-bottom: 0;
+    }
+
+    /* STATS BENTO */
+    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; }
+    .stat-bento { border:2px solid var(--border-color); padding:0.65rem 1rem; background:var(--bg-secondary); box-shadow:var(--shadow-sm); }
+    .stat-lbl { font-family:var(--font-mono); font-size:0.6rem; text-transform:uppercase; color:var(--text-secondary); margin-bottom:0.15rem; }
+    .stat-val { font-family:var(--font-mono); font-size:1.45rem; font-weight:700; color:var(--text-primary); line-height:1.1; }
+    .stat-sub { font-family:var(--font-mono); font-size:0.58rem; color:var(--text-secondary); margin-top:0.15rem; }
+
+    /* TWO-COL — fills ALL remaining height between stats row and bottom console */
+    .grid2 { display:grid; grid-template-columns:2.4fr 1fr; gap:0.75rem; flex:1; min-height:0; overflow:hidden; }
+    .left-col { display:flex; flex-direction:column; gap:0.75rem; min-height:0; overflow:hidden; }
+    .right-col { display:flex; flex-direction:column; gap:0.75rem; overflow:hidden; min-height:0; }
+
+    /* ACTIVE PLAYER CARD — fills remaining height in left column */
+    .player-card { border:3px solid var(--border-color); background:var(--bg-secondary); box-shadow:var(--shadow-md); position:relative; animation:pulseBorder 1.8s infinite ease-in-out; flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    @keyframes pulseBorder {
+      0%  { border-color:var(--border-color); box-shadow:var(--shadow-md); }
+      50% { border-color:var(--accent-crimson); box-shadow:8px 8px 0 var(--accent-crimson); }
+      100%{ border-color:var(--border-color); box-shadow:var(--shadow-md); }
+    }
+    .player-inner { display:flex; flex:1; overflow:hidden; }
+
+    /* BIG IMAGE COLUMN — fills full height of card */
+    .player-img-col {
+      width: 200px;
+      flex-shrink: 0;
+      border-right: 3px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(160deg, var(--accent-cobalt) 0%, #0f172a 100%);
+      /* stretch to full card height */
+      align-self: stretch;
+    }
+    .player-img-col img { width:100%; height:100%; object-fit:cover; object-position:top center; position:absolute; inset:0; }
+
+    /* Giant avatar initials — legible from 10 metres */
+    .avatar-initials {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 4.5rem;
+      color: rgba(255,255,255,0.9);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      position: relative;
+      z-index: 1;
+    }
+
+    .cat-stripe {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.22rem 0.5rem;
+      text-align: center;
+      letter-spacing: 0.12em;
+      z-index: 2;
+    }
+
+    /* Subtle gradient overlay at bottom for text legibility */
+    .player-img-col::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .player-info-col { flex:1; padding:1.1rem 1.4rem; display:flex; flex-direction:column; gap:0.75rem; justify-content:space-between; overflow:hidden; }
+    .role-tag { display:inline-flex; align-items:center; gap:0.35rem; border:2px solid; font-family:var(--font-mono); font-size:0.68rem; font-weight:700; text-transform:uppercase; padding:0.15rem 0.55rem; width:fit-content; }
+    .role-bat { border-color:var(--accent-cobalt); color:var(--accent-cobalt); }
+    .role-bowl { border-color:var(--accent-green); color:var(--accent-green); }
+    .role-ar { border-color:var(--accent-amber); color:var(--accent-amber); }
+    .role-wk { border-color:#a855f7; color:#a855f7; }
+
+    /* GIANT player name — visible from far away */
+    .player-name {
+      font-size: 3.5rem;
+      font-family: var(--font-display);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.03em;
+      line-height: 0.95;
+      color: var(--text-primary);
+    }
+    .status-badge { position:absolute; top:0.85rem; right:0.85rem; background:var(--accent-amber); color:#000; font-family:var(--font-display); font-weight:800; font-size:0.75rem; padding:0.3rem 0.75rem; border:2px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); text-transform:uppercase; z-index:10; }
+
+    /* PLAYER STATS (4-col) — bigger, easier to read */
+    .player-stats { display:grid; grid-template-columns:repeat(4,1fr); border:2px solid var(--border-color); background:var(--bg-primary); }
+    .pstat { display:flex; flex-direction:column; align-items:center; padding:0.95rem 0; border-right:1px solid var(--border-color); }
+    .pstat:last-child { border-right:none; }
+    .pstat-lbl { font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; color:var(--text-secondary); margin-bottom:0.1rem; }
+    .pstat-val { font-family:var(--font-mono); font-size:1.5rem; font-weight:700; }
+
+    /* BROADCAST STYLE BID BOARD */
+    .bid-board {
+      display: flex;
+      border: 3px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      background: var(--bg-primary);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .bid-board-main {
+      flex: 1.4;
+      background: var(--accent-crimson);
+      color: #fff;
+      padding: 0.8rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 3px solid var(--border-color);
+    }
+    html.dark .bid-board-main {
+      background: #e11d48;
+      color: #fff;
+    }
+    .bb-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.95;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .bb-val {
+      font-family: var(--font-mono);
+      font-size: 4.2rem;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .bb-unit {
+      font-size: 1.8rem;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+    .bid-board-sidebar {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+    }
+    .bb-sub-box {
+      flex: 1;
+      padding: 0.45rem 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .bb-sub-box:first-child {
+      border-bottom: 2px solid var(--border-color);
+    }
+    .bb-sub-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 0.1rem;
+      font-weight: 700;
+    }
+    .bb-sub-val {
+      font-family: var(--font-mono);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+    .bb-sub-unit {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    /* ═══════════════════════════════════════════
+       BID CONSOLE — FIXED BOTTOM FOOTER
+       Layout: [HEADER+CONTROLS] | [TEAM GRID] | [ACTIONS]
+    ═══════════════════════════════════════════ */
+    .console {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      border-top: 3px solid var(--border-color);
+      border-bottom: 3px solid var(--border-color);
+      background: var(--bg-primary);
+      box-shadow: 0 -6px 0 var(--border-color);
+      display: grid;
+      grid-template-columns: 2.4fr 1fr;
+      gap: 0.75rem;
+      padding: 0 1.25rem;
+    }
+    .console-left-section {
+      display: flex;
+      border-left: 2px solid var(--border-color);
+      border-right: 2px solid var(--border-color);
+      overflow: hidden;
+      min-height: 0;
+    }
+    .console-right-section {
+      display: flex;
+      border-left: 2px solid var(--border-color);
+      border-right: 2px solid var(--border-color);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* LEFT: header + increment stacked */
+    .console-left {
+      display: flex;
+      flex-direction: column;
+      border-right: 2px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .console-hdr {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.4rem 0.75rem;
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .console-sub { font-family:var(--font-mono); font-size:0.6rem; color:var(--accent-amber); font-weight:700; }
+    .inc-row {
+      display: flex;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      gap: 2px;
+      flex: 1;
+      background: var(--bg-secondary);
+      flex-wrap: nowrap;
+      align-content: center;
+    }
+    .inc-label { font-family:var(--font-mono); font-size:0.58rem; text-transform:uppercase; color:var(--text-secondary); margin-right:0.5rem; white-space:nowrap; }
+    .inc-btn {
+      border: 2px solid var(--border-color);
+      padding: 0.2rem 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    .inc-btn.active { background:var(--text-primary); color:var(--bg-primary); }
+    .inc-btn:hover:not(.active) { background:var(--bg-tertiary); }
+    .inc-custom { margin-left:auto; border:2px solid var(--accent-crimson); padding:0.2rem 0.4rem; font-family:var(--font-mono); font-size:0.65rem; font-weight:700; cursor:pointer; background:transparent; color:var(--accent-crimson); white-space:nowrap; }
+
+    /* MIDDLE: team buttons in a single row */
+    .console-teams { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+    .console-teams-label {
+      font-family:var(--font-mono); font-size:0.55rem; font-weight:700; text-transform:uppercase;
+      color:var(--text-secondary); padding:0.2rem 0.75rem;
+      border-bottom:1px solid var(--border-color);
+      background:var(--bg-secondary);
+      letter-spacing:0.08em;
+    }
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      flex: 1;
+      width: 100%;
+    }
+    .team-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3rem 0.1rem;
+      border-right: 1px solid var(--border-color);
+      border-bottom: none;
+      background: var(--bg-primary);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.1s;
+      gap: 0.1rem;
+    }
+    .team-btn:last-child { border-right:none; }
+    .team-btn:hover { background:var(--bg-tertiary); }
+    .team-btn:active { transform:translate(1px,1px); }
+    .team-btn.highest {
+      background: rgba(225,29,72,0.08);
+      outline: 2px solid var(--accent-crimson);
+      outline-offset: -2px;
+    }
+    html.dark .team-btn.highest { background: rgba(251,113,133,0.12); }
+    .team-btn.broke { opacity:0.35; cursor:not-allowed; }
+    .t-stripe { width:24px; height:3px; border:1px solid var(--border-color); }
+    .t-short { font-family:var(--font-display); font-size:0.75rem; font-weight:800; text-transform:uppercase; line-height:1; }
+    .t-purse { font-family:var(--font-mono); font-size:0.52rem; color:var(--text-secondary); }
+    .t-top { position:absolute; top:2px; right:3px; font-family:var(--font-mono); font-size:0.44rem; color:var(--accent-crimson); font-weight:700; text-transform:uppercase; }
+
+    /* RIGHT: action buttons stacked */
+    .actions {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      grid-template-columns: 1fr auto;
+      flex: 1;
+    }
+    .act-btn {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      border-left: 2px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: transform 0.1s, filter 0.1s;
+      padding: 0 1rem;
+    }
+    .act-btn:active { transform:translate(1px,1px); }
+    /* SOLD spans both rows on left, UNSOLD on right top, NEXT on right bottom */
+    .act-btn.sold {
+      background: var(--accent-green);
+      color: #fff;
+      grid-row: 1 / 3;
+      grid-column: 1;
+      border-bottom: none;
+      font-size: 0.9rem;
+      border-left: none;
+    }
+    .act-btn.sold:hover { filter: brightness(1.1); }
+    .act-btn.unsold {
+      background: var(--bg-secondary);
+      color: var(--accent-crimson);
+      grid-row: 1;
+      grid-column: 2;
+      font-size: 0.72rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .act-btn.next {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      grid-row: 2;
+      grid-column: 2;
+      border-bottom: none;
+    }
+
+    /* RIGHT: TEAM PURSE LIST — fills remaining height */
+    .team-panel { border:2px solid var(--border-color); background:var(--bg-primary); box-shadow:var(--shadow-sm); flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .panel-hdr { font-family:var(--font-display); font-weight:800; font-size:0.85rem; text-transform:uppercase; border-bottom:2px solid var(--border-color); padding:0.55rem 0.9rem; display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary); flex-shrink:0; }
+    .panel-sub { font-family:var(--font-mono); font-size:0.58rem; color:var(--text-secondary); text-transform:uppercase; }
+    .team-scroll { flex:1; overflow-y:auto; }
+    .t-row { display:flex; justify-content:space-between; align-items:center; padding:0.45rem 0.75rem; border-bottom:1px solid var(--border-color); transition:background 0.1s; }
+    .t-row:last-child { border-bottom:none; }
+    .t-row:hover { background:var(--bg-secondary); }
+    .t-row.active { background:var(--bg-tertiary); border-left:4px solid var(--accent-crimson); }
+    .t-row-left { display:flex; align-items:center; gap:0.5rem; }
+    .t-swatch { width:11px; height:11px; border:2px solid var(--border-color); flex-shrink:0; }
+    .t-name { font-family:var(--font-display); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .t-fullname { font-family:var(--font-mono); font-size:0.58rem; color:var(--text-secondary); }
+    .t-row-right { display:flex; flex-direction:column; align-items:flex-end; }
+    .t-purse-val { font-family:var(--font-mono); font-weight:700; font-size:0.82rem; }
+    .t-bar { width:55px; height:4px; background:var(--bg-tertiary); border:1px solid var(--border-color); margin-top:2px; }
+    .t-bar-fill { height:100%; }
+
+    /* RIGHT: BID LOG — fills remaining height in right column */
+    .log-panel { border:2px solid var(--border-color); background:var(--bg-secondary); box-shadow:var(--shadow-sm); flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .log-list { flex:1; overflow-y:auto; font-family:var(--font-mono); font-size:0.72rem; }
+    .log-row { display:grid; grid-template-columns:50px 1fr auto; align-items:center; gap:0.5rem; padding:0.32rem 0.75rem; border-bottom:1px solid var(--border-color); }
+    .log-row:last-child { border-bottom:none; }
+    .log-row.latest { background:var(--bg-primary); border-left:3px solid var(--accent-crimson); }
+    .log-team { font-weight:700; font-size:0.75rem; }
+    .log-amount { color:var(--accent-crimson); font-weight:700; font-size:0.75rem; text-align:center; }
+    .log-time { color:var(--text-secondary); font-size:0.58rem; text-align:right; }
+
+    /* SOLD OVERLAY */
+    .overlay { position:fixed; inset:0; background:rgba(15,23,42,0.92); z-index:200; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.3s; }
+    .overlay.visible { opacity:1; pointer-events:auto; }
+    .overlay-card { border:4px solid #fff; background:var(--bg-primary); padding:2rem 2.5rem; text-align:center; box-shadow:8px 8px 0 #fff; max-width:380px; width:90%; animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    @keyframes popIn { 0%{opacity:0;transform:scale(0.7) translateY(30px);} 100%{opacity:1;transform:scale(1) translateY(0);} }
+    .ov-type { font-family:var(--font-mono); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.15em; border:2px solid; display:inline-block; padding:0.28rem 1rem; margin-bottom:0.75rem; }
+    .ov-sold { border-color:var(--accent-green); color:var(--accent-green); }
+    .ov-unsold { border-color:var(--text-secondary); color:var(--text-secondary); }
+    .ov-name { font-family:var(--font-display); font-size:2rem; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:0.4rem; }
+    .ov-div { width:100%; height:2px; background:rgba(255,255,255,0.2); margin:0.75rem 0; }
+    .ov-team { font-family:var(--font-display); font-size:1.1rem; font-weight:800; color:#fff; text-transform:uppercase; }
+    .ov-price { font-family:var(--font-mono); font-size:2.2rem; font-weight:700; margin-top:0.4rem; }
+    .ov-btn { margin-top:1.25rem; background:transparent; border:2px solid #fff; color:#fff; padding:0.5rem 1.5rem; font-family:var(--font-mono); font-size:0.72rem; font-weight:700; text-transform:uppercase; cursor:pointer; box-shadow:3px 3px 0 #fff; }
+    .ov-btn:active { transform:translate(1px,1px); box-shadow:2px 2px 0 #fff; }
+
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+    /* CONSOLE HEIGHT SPACER — keeps content above the fixed console */
+    .console-spacer { flex-shrink:0; }
+
+    @media(max-width:860px) {
+      .grid2{grid-template-columns:1fr;}
+      .stats-row{grid-template-columns:repeat(2,1fr);}
+      .team-grid{grid-template-columns:repeat(5,1fr);}
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="ticker-wrap">
+    <div class="ticker-title">BID HISTORY</div>
+    <div class="ticker-content">
+      <div class="ticker-items" id="ticker-items"></div>
+    </div>
+    <div class="ticker-clock-box">
+      <span class="live-dot"></span>
+      <span id="live-clock">13:10:00</span>
+    </div>
+  </div>
+  <div class="main-row">
+    <div class="header-left">
+      <button class="back-btn">←</button>
+      <div>
+        <div style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">TOURNAMENT</div>
+        <div class="header-title">CRICKET AUCTION PRO <span class="badge" style="margin-left:0.5rem;">IPL-2026</span></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" id="status-pill">
+        <span class="live-dot"></span>
+        <span id="status-text">LIVE AUCTION</span>
+      </div>
+      <div style="border:2px solid rgba(255,255,255,0.25);padding:0.28rem 0.7rem;font-family:var(--font-mono);font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;">
+        ★ ICON PLAYER &nbsp;|&nbsp; <span style="color:var(--accent-amber);">3 LEFT</span>
+      </div>
+      <button class="ctrl-btn pause" onclick="togglePause()" id="pause-btn">⏸ PAUSE</button>
+      <button class="ctrl-btn end" onclick="endAuction()">⏹ END</button>
+      <div class="bid-clock">
+        <div class="clock-lbl">BID CLOCK</div>
+        <div class="clock-val" id="bid-clock">15s</div>
+      </div>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙 DARK MODE</button>
+    </div>
+  </div>
+</header>
+
+<!-- SOLD OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="ov-type ov-sold" id="ov-type">🔨 SOLD</div>
+    <div class="ov-name" id="ov-name">MS DHONI</div>
+    <div class="ov-div"></div>
+    <div class="ov-team" id="ov-team">CHENNAI SUPER KINGS</div>
+    <div class="ov-price" id="ov-price" style="color:var(--accent-green);">₹12.50 Cr</div>
+    <button class="ov-btn" onclick="closeOverlay()">NEXT PLAYER →</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="page-body">
+  <main class="main">
+
+    <!-- STATS BENTO ROW -->
+    <div class="stats-row">
+      <div class="stat-bento">
+        <div class="stat-lbl">Total Sold Value</div>
+        <div class="stat-val">58.50 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">Cr</span></div>
+        <div class="stat-sub">↑ 2.50 Cr since last player</div>
+      </div>
+      <div class="stat-bento">
+        <div class="stat-lbl">Highest Bid Today</div>
+        <div class="stat-val" style="color:var(--accent-crimson);">14.50 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">Cr</span></div>
+        <div class="stat-sub">Virat Kohli → RCB</div>
+      </div>
+      <div class="stat-bento">
+        <div class="stat-lbl">Players Auctioned</div>
+        <div class="stat-val">17 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">/ 45</span></div>
+        <div class="stat-sub">28 players remaining</div>
+      </div>
+      <div class="stat-bento">
+        <div class="stat-lbl">Avg Sale Price</div>
+        <div class="stat-val">3.44 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">Cr</span></div>
+        <div class="stat-sub">Across 17 sold players</div>
+      </div>
+    </div>
+
+    <!-- TWO-COL GRID -->
+    <div class="grid2">
+
+      <!-- LEFT -->
+      <div class="left-col">
+        <!-- ACTIVE PLAYER CARD -->
+        <div class="player-card" id="player-card">
+          <div class="status-badge" id="status-badge">ACTIVE BIDDING</div>
+          <div class="player-inner">
+
+            <!-- BIG PHOTO / AVATAR COLUMN -->
+            <div class="player-img-col" id="avatar-col">
+              <div class="cat-stripe" id="cat-stripe">★ ICON PLAYER</div>
+              <span class="avatar-initials" id="avatar-text">MSD</span>
+            </div>
+
+            <!-- INFO COLUMN -->
+            <div class="player-info-col">
+              <div>
+                <div class="role-tag role-wk" id="role-tag" style="margin-bottom:0.5rem;">🧤 Wicket-Keeper</div>
+                <div class="player-name" id="player-name">MS Dhoni</div>
+              </div>
+
+              <!-- BROADCAST STYLE BID BOARD -->
+              <div class="bid-board">
+                <div class="bid-board-main">
+                  <span class="bb-lbl">Current Bid</span>
+                  <span class="bb-val" id="curr-bid">₹12.50 <span class="bb-unit">Cr</span></span>
+                </div>
+                <div class="bid-board-sidebar">
+                  <div class="bb-sub-box">
+                    <span class="bb-sub-lbl">High Bidder</span>
+                    <span class="bb-sub-val" id="high-bidder">CSK</span>
+                  </div>
+                  <div class="bb-sub-box">
+                    <span class="bb-sub-lbl">Base Price</span>
+                    <span class="bb-sub-val" id="base-val">₹2.00 <span class="bb-sub-unit">Cr</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- end left -->
+
+      <!-- RIGHT -->
+      <div class="right-col">
+        <div class="team-panel">
+          <div class="panel-hdr">
+            <span>Team Purses</span>
+            <span class="panel-sub">Scroll ↓</span>
+          </div>
+          <div class="team-scroll" id="team-list"></div>
+        </div>
+      </div>
+      <!-- end right -->
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FIXED BOTTOM: ADMIN BID CONSOLE
+═══════════════════════════════════════ -->
+<div class="console" id="console">
+  <!-- LEFT SECTION (Aligns with player card) -->
+  <div class="console-left-section">
+    <div class="console-left">
+      <div class="console-hdr">
+        <span>Admin Bid Control</span>
+        <span class="console-sub">Next: <strong id="next-bid">₹13.00 Cr</strong></span>
+      </div>
+      <div class="inc-row">
+        <span class="inc-label">INC:</span>
+        <button class="inc-btn" onclick="setInc(this,500)">+500</button>
+        <button class="inc-btn active" onclick="setInc(this,1000)">+1K</button>
+        <button class="inc-btn" onclick="setInc(this,5000)">+5K</button>
+        <button class="inc-btn" onclick="setInc(this,10000)">+10K</button>
+        <button class="inc-custom" onclick="toggleCustom()">✎</button>
+        <div id="custom-row" style="display:none;align-items:center;gap:0.3rem;margin-left:0.3rem;">
+          <input type="text" id="custom-input" placeholder="Amt" style="width:52px;height:24px;padding:0.1rem 0.3rem;border:2px solid var(--border-color);font-family:var(--font-mono);font-size:0.65rem;background:var(--bg-primary);color:var(--text-primary);">
+          <button onclick="applyCustom()" style="height:24px;padding:0 0.35rem;border:2px solid var(--border-color);font-family:var(--font-mono);font-size:0.6rem;font-weight:700;background:var(--text-primary);color:var(--bg-primary);cursor:pointer;">OK</button>
+        </div>
+      </div>
+    </div>
+    <div class="console-teams">
+      <div class="console-teams-label">▼ CLICK A TEAM TO PLACE BID</div>
+      <div class="team-grid" id="team-grid"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT SECTION (Aligns with sidebar) -->
+  <div class="console-right-section">
+    <div class="actions">
+      <button class="act-btn sold" onclick="confirmSold()">🔨 SOLD</button>
+      <button class="act-btn unsold" onclick="confirmUnsold()">✗ UNSOLD</button>
+      <button class="act-btn next" onclick="nextPlayer()" title="Next Player">⏭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const teams=[
+  {id:1,name:"Chennai Super Kings",short:"CSK",color:"#f59e0b",purse:28.50,total:90},
+  {id:2,name:"Mumbai Indians",short:"MI",color:"#2563eb",purse:15.25,total:90},
+  {id:3,name:"Royal Challengers",short:"RCB",color:"#ef4444",purse:42.00,total:90},
+  {id:4,name:"Kolkata Knight Riders",short:"KKR",color:"#7c3aed",purse:31.75,total:90},
+  {id:5,name:"Delhi Capitals",short:"DC",color:"#3b82f6",purse:22.00,total:90},
+  {id:6,name:"Sunrisers Hyderabad",short:"SRH",color:"#f97316",purse:18.50,total:90},
+  {id:7,name:"Punjab Kings",short:"PBKS",color:"#dc2626",purse:35.00,total:90},
+  {id:8,name:"Rajasthan Royals",short:"RR",color:"#db2777",purse:27.25,total:90},
+  {id:9,name:"Lucknow Super Giants",short:"LSG",color:"#0ea5e9",purse:19.75,total:90},
+  {id:10,name:"Gujarat Titans",short:"GT",color:"#14b8a6",purse:33.00,total:90},
+];
+const players=[
+  {name:"MS Dhoni",role:"wk",avatar:"MSD",bg:"#f59e0b",fg:"#000",cat:"★ ICON PLAYER",stats:["250","5082","137.8","185"],labels:["Matches","Runs","Strike Rate","Dismissals"],base:200,bid:1250,bidder:0},
+  {name:"Virat Kohli",role:"bat",avatar:"VK",bg:"#ef4444",fg:"#fff",cat:"★ ICON PLAYER",stats:["244","7263","130.2","7"],labels:["Matches","Runs","Strike Rate","Centuries"],base:200,bid:1450,bidder:2},
+  {name:"Jasprit Bumrah",role:"bowl",avatar:"JB",bg:"#2563eb",fg:"#fff",cat:"● BOWLER",stats:["120","—","—","145"],labels:["Matches","Runs","Economy","Wickets"],base:200,bid:850,bidder:1},
+  {name:"Rohit Sharma",role:"bat",avatar:"RS",bg:"#1d4ed8",fg:"#fff",cat:"★ ICON PLAYER",stats:["250","6211","129.5","5"],labels:["Matches","Runs","Strike Rate","Centuries"],base:200,bid:1100,bidder:1},
+  {name:"Ravindra Jadeja",role:"ar",avatar:"RJ",bg:"#059669",fg:"#fff",cat:"◆ ALL-ROUNDER",stats:["236","2692","127.8","132"],labels:["Matches","Runs","Strike Rate","Wickets"],base:200,bid:780,bidder:0},
+];
+let pIdx=0, p=players[0], bidder=p.bidder, bid=p.bid, inc=1000, paused=false;
+let logs=[{t:"CSK",a:"₹12.50 Cr",ts:"13:04:22"},{t:"MI",a:"₹12.00 Cr",ts:"13:04:18"},{t:"RCB",a:"₹11.50 Cr",ts:"13:04:15"},{t:"KKR",a:"₹11.00 Cr",ts:"13:04:11"}];
+let clockVal=15, clockTmr;
+
+function renderGrid(){
+  const g=document.getElementById("team-grid"); g.innerHTML="";
+  teams.forEach((t,i)=>{
+    const isH=i===bidder, canA=t.purse*100>=(bid+inc);
+    const b=document.createElement("button");
+    b.className=`team-btn${isH?" highest":""}${!canA&&!isH?" broke":""}`;
+    b.title=t.name+" — ₹"+t.purse+" Cr";
+    if(isH) b.innerHTML+=`<span class="t-top">HIGHEST</span>`;
+    b.innerHTML+=`<div class="t-stripe" style="background:${t.color};"></div><div class="t-short">${t.short}</div><div class="t-purse">₹${t.purse} Cr</div>`;
+    b.onclick=()=>{if(!paused&&!isH&&canA)placeBid(i);};
+    g.appendChild(b);
+  });
+}
+function renderList(){
+  const l=document.getElementById("team-list"); l.innerHTML="";
+  [...teams].sort((a,b)=>b.purse-a.purse).forEach(t=>{
+    const isA=teams.indexOf(t)===bidder, pct=((t.total-t.purse)/t.total*100).toFixed(0);
+    const r=document.createElement("div");
+    r.className=`t-row${isA?" active":""}`;
+    r.innerHTML=`<div class="t-row-left"><div class="t-swatch" style="background:${t.color};"></div><div><div class="t-name">${t.short}</div><div class="t-fullname">${t.name}</div></div></div>
+    <div class="t-row-right"><div class="t-purse-val" style="color:${isA?'var(--accent-crimson)':'var(--text-primary)'}">₹${t.purse} Cr</div><div class="t-bar"><div class="t-bar-fill" style="width:${pct}%;background:${t.color};"></div></div></div>`;
+    l.appendChild(r);
+  });
+}
+function renderLogs(){
+  const tickerItems = document.getElementById("ticker-items");
+  if (!tickerItems) return;
+  
+  if (logs.length === 0) {
+    tickerItems.innerHTML = `<span class="ticker-item" style="color:var(--text-secondary);">Waiting for first bid...</span>`;
+    return;
+  }
+  
+  tickerItems.innerHTML = logs.map(lg => {
+    return `<span class="ticker-item">
+      <span class="ticker-item-team">${lg.t}</span>
+      <span class="ticker-item-amount">${lg.a}</span>
+      <span class="ticker-item-time">(${lg.ts})</span>
+    </span>`;
+  }).join('<span style="color:var(--text-secondary);margin-right:2rem;">•</span>');
+}
+function loadPlayer(pl){
+  document.getElementById("player-name").textContent=pl.name;
+  document.getElementById("avatar-text").textContent=pl.avatar;
+  // Set background gradient based on player colour
+  document.getElementById("avatar-col").style.background=`linear-gradient(160deg, ${pl.bg} 0%, #0f172a 100%)`;
+  document.getElementById("avatar-text").style.color=pl.fg;
+  document.getElementById("cat-stripe").textContent=pl.cat;
+  const rm={bat:{cls:"role-bat",e:"🏏",t:"Batsman"},bowl:{cls:"role-bowl",e:"🎯",t:"Bowler"},ar:{cls:"role-ar",e:"⚡",t:"All-Rounder"},wk:{cls:"role-wk",e:"🧤",t:"Wicket-Keeper"}};
+  const r=rm[pl.role]; const rt=document.getElementById("role-tag");
+  rt.className=`role-tag ${r.cls}`; rt.innerHTML=`${r.e} ${r.t}`;
+  // pl.stats.forEach((v,i)=>{document.getElementById(`ps${i+1}`).textContent=v;});
+  // document.getElementById("ps4-lbl").textContent=pl.labels[3];
+  document.getElementById("base-val").innerHTML=`₹${(pl.base/100).toFixed(2)} <span class="bb-sub-unit">Cr</span>`;
+  bid=pl.bid; bidder=pl.bidder; updateDisplay();
+}
+function updateDisplay(){
+  document.getElementById("curr-bid").innerHTML=`₹${(bid/100).toFixed(2)} <span class="bb-unit">Cr</span>`;
+  document.getElementById("high-bidder").textContent=teams[bidder]?.short||"—";
+  document.getElementById("next-bid").innerHTML=`₹${((bid+inc)/100).toFixed(2)} <span style="font-size:0.58rem;font-weight:400;color:var(--bg-secondary);">Cr</span>`;
+  renderGrid(); renderList();
+}
+function placeBid(idx){
+  if(idx===bidder)return;
+  const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  bid+=inc; bidder=idx;
+  logs.unshift({t:teams[idx].short,a:`₹${(bid/100).toFixed(2)} Cr`,ts:now});
+  if(logs.length>10)logs.pop();
+  updateDisplay(); renderLogs(); resetClock();
+}
+function confirmSold(){
+  const t=teams[bidder];
+  document.getElementById("ov-type").textContent="🔨 SOLD"; document.getElementById("ov-type").className="ov-type ov-sold";
+  document.getElementById("ov-name").textContent=p.name.toUpperCase();
+  document.getElementById("ov-team").textContent=t.name;
+  document.getElementById("ov-price").textContent=`₹${(bid/100).toFixed(2)} Cr`; document.getElementById("ov-price").style.color="var(--accent-green)";
+  document.getElementById("overlay").classList.add("visible");
+  t.purse=Math.max(0,t.purse-bid/100);
+}
+function confirmUnsold(){
+  document.getElementById("ov-type").textContent="✗ UNSOLD"; document.getElementById("ov-type").className="ov-type ov-unsold";
+  document.getElementById("ov-name").textContent=p.name.toUpperCase();
+  document.getElementById("ov-team").textContent="— NO BIDDERS —";
+  document.getElementById("ov-price").textContent=`Base: ₹${(p.base/100).toFixed(2)} Cr`; document.getElementById("ov-price").style.color="var(--text-secondary)";
+  document.getElementById("overlay").classList.add("visible");
+}
+function closeOverlay(){ document.getElementById("overlay").classList.remove("visible"); nextPlayer(); }
+function nextPlayer(){ pIdx=(pIdx+1)%players.length; p=players[pIdx]; loadPlayer(p); resetClock(); }
+function setInc(btn,val){ inc=val; document.querySelectorAll(".inc-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); updateDisplay(); }
+function toggleCustom(){ const r=document.getElementById("custom-row"); r.style.display=r.style.display==="flex"?"none":"flex"; }
+function applyCustom(){ const v=parseInt(document.getElementById("custom-input").value); if(v>0){inc=v;updateDisplay();} }
+function togglePause(){
+  paused=!paused; const btn=document.getElementById("pause-btn"), sp=document.getElementById("status-pill"), st=document.getElementById("status-text");
+  if(paused){btn.textContent="▶ RESUME";st.textContent="PAUSED";sp.style.borderColor="var(--accent-amber)";clearInterval(clockTmr);}
+  else{btn.textContent="⏸ PAUSE";st.textContent="LIVE AUCTION";sp.style.borderColor="";startClock();}
+}
+function endAuction(){ if(confirm("End the auction? This cannot be undone.")){clearInterval(clockTmr);document.getElementById("status-text").textContent="ENDED";} }
+function resetClock(){ clearInterval(clockTmr); clockVal=15; document.getElementById("bid-clock").textContent="15s"; if(!paused)startClock(); }
+function startClock(){ clockTmr=setInterval(()=>{ clockVal--; document.getElementById("bid-clock").textContent=clockVal+"s"; if(clockVal<=0){clearInterval(clockTmr);document.getElementById("bid-clock").textContent="TIME!";} },1000); }
+function updateLiveClock(){ document.getElementById("live-clock").textContent=new Date().toLocaleTimeString('en-IN',{hour12:false}); }
+function toggleTheme(){
+  document.documentElement.classList.toggle("dark");
+  const btn=document.getElementById("theme-btn");
+  btn.textContent=document.documentElement.classList.contains("dark")?"☀ LIGHT MODE":"🌙 DARK MODE";
+}
+loadPlayer(p); renderLogs(); startClock(); setInterval(updateLiveClock,1000);
+
+// Measure fixed console height and apply as padding to page-body so player
+// card fills all space right up to the console top edge
+function measureConsole(){
+  const c=document.getElementById("console");
+  const pb=document.querySelector(".page-body");
+  if(c&&pb){ pb.style.paddingBottom=c.offsetHeight+"px"; }
+}
+measureConsole();
+window.addEventListener("resize",measureConsole);
+</script>
+
+<!-- Agentation Integration -->
+<div id="agentation-root"></div>
+<script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom": "https://esm.sh/react-dom@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "agentation": "https://esm.sh/agentation@3.0.2?external=react,react-dom&dev"
+    }
+  }
+</script>
+<script type="module">
+  import React from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { Agentation } from 'agentation';
+
+  window.agentationStatus = 'imported';
+
+  try {
+    const container = document.getElementById('agentation-root');
+    if (container) {
+      window.agentationStatus = 'container-found';
+      const root = createRoot(container);
+      root.render(React.createElement(Agentation));
+      window.agentationStatus = 'rendered';
+    } else {
+      window.agentationStatus = 'container-not-found';
+    }
+  } catch (err) {
+    console.error('Failed to load Agentation:', err);
+    window.agentationStatus = 'error: ' + err.message;
+  }
+</script>
+</body>
+</html>

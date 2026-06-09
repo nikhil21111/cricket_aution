@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
@@ -12,6 +13,7 @@ import toast from "react-hot-toast";
 const TournamentDashboard = () => {
   const { id: tournamentId } = useParams();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [tournament, setTournament] = useState(null);
@@ -198,10 +200,10 @@ const TournamentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background-dark">
+      <div className="h-screen w-full flex items-center justify-center bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100">
         <div className="flex flex-col items-center gap-4">
           <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-text-secondary">Loading tournament...</p>
+          <p className="text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase">Loading tournament...</p>
         </div>
       </div>
     );
@@ -225,39 +227,49 @@ const TournamentDashboard = () => {
         tournamentId={tournamentId}
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-background-dark relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 relative">
         {/* Header */}
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-6 border-b border-[#283539] bg-background-dark/50 backdrop-blur-md sticky top-0 z-20">
+        <header className="h-20 flex-shrink-0 flex items-center justify-between px-6 border-b-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-background-dark sticky top-0 z-20">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <Link
                 to="/"
-                className="text-text-secondary hover:text-white transition-colors"
+                className="text-text-secondary hover:text-text-primary dark:hover:text-slate-100 transition-colors"
               >
                 <span className="material-symbols-outlined text-xl">
                   arrow_back
                 </span>
               </Link>
-              <h2 className="text-white text-2xl font-black tracking-tight">
+              <h2 className="text-text-primary dark:text-slate-100 text-2xl font-display font-black tracking-tight uppercase leading-none">
                 {tournament?.name}
               </h2>
             </div>
-            <p className="text-text-secondary text-sm hidden sm:block ml-7">
+            <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase mt-1 ml-7">
               Manage teams, players, and auction
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 hover:bg-background-tertiary transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
+              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle theme"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {theme === "dark" ? "light_mode" : "dark_mode"}
+              </span>
+            </button>
             <span
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${
+              className={`text-xs font-mono font-bold px-3 py-1.5 border-2 ${
                 auctionState?.is_live
-                  ? "bg-green-500/20 text-green-400 border-green-500/20"
-                  : "bg-yellow-500/20 text-yellow-400 border-yellow-500/20"
+                  ? "bg-green-500/10 text-green-500 border-green-500"
+                  : "bg-yellow-500/10 text-yellow-500 border-yellow-500"
               }`}
             >
               {auctionState?.is_live
-                ? "Live"
-                : tournament?.status?.charAt(0).toUpperCase() +
-                  tournament?.status?.slice(1)}
+                ? "LIVE"
+                : tournament?.status?.toUpperCase()}
             </span>
           </div>
         </header>
@@ -266,25 +278,25 @@ const TournamentDashboard = () => {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             {/* Hero Card */}
-            <div className="col-span-1 md:col-span-2 relative group overflow-hidden rounded-2xl bg-card-dark border border-[#283539] shadow-lg transition-all hover:border-primary/50">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent"></div>
+            <div className="col-span-1 md:col-span-2 relative group overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[4px_4px_0px_var(--border-color)] transition-all hover:shadow-[6px_6px_0px_var(--border-color)] hover:-translate-x-0.5 hover:-translate-y-0.5">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
               <div className="relative z-10 p-6 h-full flex flex-col justify-end min-h-[200px]">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="bg-primary/20 backdrop-blur-sm p-2 rounded-lg text-primary">
+                  <div className="border-2 border-primary bg-primary/10 p-2 text-primary">
                     <span className="material-symbols-outlined">trophy</span>
                   </div>
                 </div>
-                <h3 className="text-3xl font-black text-white mb-2">
+                <h3 className="text-3xl font-display font-black text-text-primary dark:text-slate-100 mb-2 uppercase leading-tight">
                   {tournament?.name}
                 </h3>
-                <p className="text-gray-300 text-sm mb-6 max-w-md">
+                <p className="text-text-secondary dark:text-text-secondary-dark text-sm mb-6 max-w-md">
                   {tournament?.description ||
                     "Add teams, players, and start your live auction."}
                 </p>
                 <div className="flex gap-3">
                   <Link
                     to={`/tournament/${tournamentId}/live`}
-                    className="flex items-center justify-center gap-2 h-10 px-6 bg-primary hover:bg-primary/90 text-background-dark text-sm font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(13,185,242,0.3)]"
+                    className="flex items-center justify-center gap-2 h-10 px-6 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       play_arrow
@@ -294,7 +306,7 @@ const TournamentDashboard = () => {
                   <button
                     type="button"
                     onClick={copyPublicLink}
-                    className="flex items-center justify-center gap-2 h-10 px-4 bg-[#1c2e35] hover:bg-[#283539] text-white text-sm font-bold rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       link
@@ -303,7 +315,7 @@ const TournamentDashboard = () => {
                   </button>
                   <Link
                     to={`/tournament/${tournamentId}/teams`}
-                    className="flex items-center justify-center gap-2 h-10 px-4 bg-[#283539] hover:bg-[#3b4e54] text-white text-sm font-bold rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
                     View Teams
                   </Link>
@@ -312,67 +324,70 @@ const TournamentDashboard = () => {
             </div>
 
             {/* Stats Card: Total Teams */}
-            <div className="bg-card-dark rounded-2xl p-6 border border-[#283539] flex flex-col justify-between hover:bg-card-hover transition-colors group">
-              <div className="flex justify-between items-start">
-                <div className="bg-[#283539] p-2 rounded-lg text-white group-hover:text-primary transition-colors">
+            <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+              <div className="relative z-10 flex justify-between items-start">
+                <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 text-text-primary dark:text-slate-100">
                   <span className="material-symbols-outlined">groups</span>
                 </div>
                 {teams.length > 0 && (
-                  <span className="text-xs font-medium text-green-400 flex items-center gap-1">
+                  <span className="text-xs font-mono font-bold text-accent-green flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">
                       check_circle
                     </span>
-                    Active
+                    ACTIVE
                   </span>
                 )}
               </div>
-              <div className="mt-4">
-                <p className="text-text-secondary text-sm font-medium mb-1">
+              <div className="relative z-10 mt-4">
+                <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase mb-1">
                   Total Teams
                 </p>
-                <p className="text-white text-3xl font-bold font-display tracking-tight">
+                <p className="text-text-primary dark:text-slate-100 text-3xl font-display font-black tracking-tight">
                   {teams.length}
                 </p>
               </div>
             </div>
 
             {/* Stats Card: Total Players */}
-            <div className="bg-card-dark rounded-2xl p-6 border border-[#283539] flex flex-col justify-between hover:bg-card-hover transition-colors group">
-              <div className="flex justify-between items-start">
-                <div className="bg-[#283539] p-2 rounded-lg text-white group-hover:text-primary transition-colors">
+            <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 flex flex-col justify-between shadow-[4px_4px_0px_var(--border-color)] group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+              <div className="relative z-10 flex justify-between items-start">
+                <div className="border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark p-2 text-text-primary dark:text-slate-100">
                   <span className="material-symbols-outlined">person</span>
                 </div>
-                <span className="text-xs font-medium text-text-secondary">
-                  Available: {availablePlayers}
+                <span className="text-xs font-mono font-bold text-text-secondary dark:text-text-secondary-dark">
+                  AVAILABLE: {availablePlayers}
                 </span>
               </div>
-              <div className="mt-4">
-                <p className="text-text-secondary text-sm font-medium mb-1">
+              <div className="relative z-10 mt-4">
+                <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase mb-1">
                   Total Players
                 </p>
-                <p className="text-white text-3xl font-bold font-display tracking-tight">
+                <p className="text-text-primary dark:text-slate-100 text-3xl font-display font-black tracking-tight">
                   {players.length}
                 </p>
               </div>
             </div>
 
             {/* Team Management Card */}
-            <div className="col-span-1 md:col-span-2 row-span-2 bg-card-dark rounded-2xl border border-[#283539] flex flex-col overflow-hidden">
-              <div className="p-5 border-b border-[#283539] flex items-center justify-between bg-[#16262c]">
+            <div className="relative col-span-1 md:col-span-2 row-span-2 bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark flex flex-col overflow-hidden shadow-[4px_4px_0px_var(--border-color)]">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+              <div className="relative z-10 p-5 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                 <div>
-                  <h3 className="text-white text-lg font-bold">Teams</h3>
-                  <p className="text-text-secondary text-xs">
-                    Manage franchises and budgets
+                  <h3 className="text-text-primary dark:text-slate-100 text-lg font-display font-black uppercase">Teams</h3>
+                  <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-medium">
+                    Franchises & budgets
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddTeam(true)}
-                  className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark transition-all"
+                  className="flex items-center justify-center size-9 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[0px_0px_0px_var(--border-color)] transition-all"
                 >
                   <span className="material-symbols-outlined">add</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-3">
+              <div className="relative z-10 flex-1 overflow-y-auto p-3">
                 {teams.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-10">
                     <div className="size-14 rounded-xl bg-[#1c2e35] flex items-center justify-center mb-3">
@@ -398,7 +413,7 @@ const TournamentDashboard = () => {
                         className="flex items-center gap-3 p-3 rounded-xl bg-[#1c2e35] hover:bg-[#243d46] transition-colors group"
                       >
                         <div
-                          className="size-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                          className="size-10 rounded-lg flex items-center justify-center text-text-primary dark:text-slate-100 font-bold text-sm"
                           style={{
                             backgroundColor: team.color + "30",
                             color: team.color,
@@ -415,7 +430,7 @@ const TournamentDashboard = () => {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium truncate">
+                          <p className="text-text-primary dark:text-slate-100 font-display font-bold truncate">
                             {team.name}
                           </p>
                           <p className="text-text-secondary text-xs">
@@ -425,7 +440,7 @@ const TournamentDashboard = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-text-secondary">Players</p>
-                          <p className="text-white font-bold">
+                          <p className="text-text-primary dark:text-slate-100 font-bold font-mono">
                             {
                               players.filter((p) => p.team_id === team.id)
                                 .length
@@ -456,22 +471,23 @@ const TournamentDashboard = () => {
             </div>
 
             {/* Player Pool Card */}
-            <div className="col-span-1 md:col-span-2 row-span-2 bg-card-dark rounded-2xl border border-[#283539] flex flex-col overflow-hidden">
-              <div className="p-5 border-b border-[#283539] flex items-center justify-between bg-[#16262c]">
+            <div className="relative col-span-1 md:col-span-2 row-span-2 bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark flex flex-col overflow-hidden shadow-[4px_4px_0px_var(--border-color)]">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+              <div className="relative z-10 p-5 border-b-2 border-text-primary dark:border-text-secondary-dark flex items-center justify-between bg-background-secondary dark:bg-background-dark">
                 <div>
-                  <h3 className="text-white text-lg font-bold">Player Pool</h3>
-                  <p className="text-text-secondary text-xs">
+                  <h3 className="text-text-primary dark:text-slate-100 text-lg font-display font-black uppercase">Player Pool</h3>
+                  <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-medium">
                     Available players for auction
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddPlayer(true)}
-                  className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark transition-all"
+                  className="flex items-center justify-center size-9 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[0px_0px_0px_var(--border-color)] transition-all"
                 >
                   <span className="material-symbols-outlined">add</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-3">
+              <div className="relative z-10 flex-1 overflow-y-auto p-3">
                 {players.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-10">
                     <div className="size-14 rounded-xl bg-[#1c2e35] flex items-center justify-center mb-3">
@@ -510,7 +526,7 @@ const TournamentDashboard = () => {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium truncate text-sm">
+                          <p className="text-text-primary dark:text-slate-100 font-display font-bold truncate text-sm">
                             {player.name}
                           </p>
                           <div className="flex items-center gap-2">

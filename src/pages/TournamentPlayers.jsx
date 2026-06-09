@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase, formatShortCurrency, uploadImage } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
 import AddPlayerForm from "../components/AddPlayerForm";
 import toast from "react-hot-toast";
@@ -9,6 +10,7 @@ import toast from "react-hot-toast";
 const TournamentPlayers = () => {
   const { id: tournamentId } = useParams();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [tournament, setTournament] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -240,7 +242,7 @@ const TournamentPlayers = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background-dark">
+      <div className="h-screen w-full flex items-center justify-center bg-background-light dark:bg-background-dark">
         <div className="flex flex-col items-center gap-4">
           <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="text-text-secondary">Loading players...</p>
@@ -250,38 +252,50 @@ const TournamentPlayers = () => {
   }
 
   return (
-    <div className="bg-background-dark text-white font-display min-h-screen flex flex-col overflow-x-hidden">
+    <div className="bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-[#283539] bg-background-dark/90 backdrop-blur-md px-6 py-4 lg:px-10">
+      <header className="sticky top-0 z-50 h-20 flex-shrink-0 flex items-center justify-between px-6 border-b-3 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-background-dark">
         <div className="flex items-center gap-4">
           <Link
             to={`/tournament/${tournamentId}`}
-            className="flex items-center justify-center size-10 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-dark transition-colors"
+            className="flex items-center justify-center size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 hover:bg-background-tertiary transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
           >
             <span className="material-symbols-outlined text-[24px]">
               arrow_back
             </span>
           </Link>
           <div>
-            <h1 className="text-xl font-bold leading-tight tracking-tight text-white">
+            <h1 className="text-2xl font-display font-black tracking-tight uppercase leading-none text-text-primary dark:text-slate-100">
               Player Pool
             </h1>
-            <p className="text-xs text-text-secondary font-medium">
+            <p className="text-xs text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase mt-1">
               {tournament?.name}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center justify-center size-10 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 hover:bg-background-tertiary transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)] animate-fadeIn"
+            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle theme"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {theme === "dark" ? "light_mode" : "dark_mode"}
+            </span>
+          </button>
+          
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="flex items-center justify-center px-4 h-10 rounded-lg bg-primary text-background-dark font-bold text-sm hover:bg-primary-dark transition-colors"
+            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
             <span className="material-symbols-outlined mr-2">person_add</span>
             Add Player
           </button>
           <Link
             to={`/tournament/${tournamentId}/live`}
-            className="flex items-center justify-center px-4 h-10 rounded-lg bg-[#283539] text-white font-bold text-sm hover:bg-[#3b4e54] transition-colors"
+            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
             <span className="material-symbols-outlined mr-2">live_tv</span>
             Go Live
@@ -292,35 +306,47 @@ const TournamentPlayers = () => {
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 lg:p-8 flex flex-col gap-6">
         {/* Stats Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1 rounded-xl p-5 bg-card-dark border border-[#283539]">
-            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wider">
-              Total Players
-            </p>
-            <p className="text-2xl font-bold tracking-tight">{totalPlayers}</p>
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10">
+              <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                Total Players
+              </p>
+              <p className="text-3xl font-display font-black tracking-tight mt-2">{totalPlayers}</p>
+            </div>
           </div>
-          <div className="flex flex-col gap-1 rounded-xl p-5 bg-card-dark border border-[#283539]">
-            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wider">
-              Available
-            </p>
-            <p className="text-2xl font-bold tracking-tight text-yellow-400">
-              {availablePlayers}
-            </p>
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 dark:from-amber-500/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10">
+              <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                Available
+              </p>
+              <p className="text-3xl font-display font-black tracking-tight text-yellow-400 mt-2">
+                {availablePlayers}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col gap-1 rounded-xl p-5 bg-card-dark border border-[#283539]">
-            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wider">
-              Sold
-            </p>
-            <p className="text-2xl font-bold tracking-tight text-green-400">
-              {soldPlayers}
-            </p>
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10">
+              <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                Sold
+              </p>
+              <p className="text-3xl font-display font-black tracking-tight text-green-400 mt-2">
+                {soldPlayers}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col gap-1 rounded-xl p-5 bg-card-dark border border-[#283539]">
-            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wider">
-              Unsold
-            </p>
-            <p className="text-2xl font-bold tracking-tight text-red-400">
-              {unsoldPlayers}
-            </p>
+          <div className="relative overflow-hidden bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark p-6 shadow-[4px_4px_0px_var(--border-color)] group">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 dark:from-red-500/20 to-transparent pointer-events-none"></div>
+            <div className="relative z-10">
+              <p className="text-text-secondary dark:text-text-secondary-dark text-xs font-mono font-bold uppercase tracking-wider">
+                Unsold
+              </p>
+              <p className="text-3xl font-display font-black tracking-tight text-red-400 mt-2">
+                {unsoldPlayers}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -336,7 +362,7 @@ const TournamentPlayers = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search players..."
-              className="w-full h-11 pl-10 pr-4 rounded-lg bg-card-dark border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+              className="w-full h-12 pl-10 pr-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 placeholder:text-text-secondary/50 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
             />
           </div>
 
@@ -344,7 +370,7 @@ const TournamentPlayers = () => {
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="h-11 px-4 rounded-lg bg-card-dark border border-[#283539] text-white focus:outline-none focus:border-primary transition-colors"
+            className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
           >
             <option value="all">All Roles</option>
             <option value="batsman">Batsman</option>
@@ -357,7 +383,7 @@ const TournamentPlayers = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-11 px-4 rounded-lg bg-card-dark border border-[#283539] text-white focus:outline-none focus:border-primary transition-colors"
+            className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
           >
             <option value="all">All Status</option>
             <option value="available">Available</option>
@@ -370,7 +396,7 @@ const TournamentPlayers = () => {
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredPlayers.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <div className="size-16 rounded-xl bg-[#1c2e35] flex items-center justify-center mb-4">
+              <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center mb-4">
                 <span className="material-symbols-outlined text-3xl text-text-secondary">
                   person_off
                 </span>
@@ -386,7 +412,7 @@ const TournamentPlayers = () => {
                 filterStatus === "all" && (
                   <button
                     onClick={() => setShowAddPlayer(true)}
-                    className="mt-4 px-4 py-2 bg-primary text-background-dark font-bold rounded-lg hover:bg-primary-dark transition-colors"
+                    className="mt-4 px-4 py-2 bg-primary text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] hover:bg-primary-dark transition-colors"
                   >
                     Add Player
                   </button>
@@ -396,12 +422,12 @@ const TournamentPlayers = () => {
             filteredPlayers.map((player) => (
               <div
                 key={player.id}
-                className="bg-card-dark rounded-xl border border-[#283539] overflow-hidden hover:border-primary/50 transition-all group"
+                className="bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark overflow-hidden shadow-[3px_3px_0px_var(--border-color)] hover:shadow-[4px_4px_0px_var(--border-color)] transition-all group"
               >
                 <div className="p-4">
                   <div className="flex items-start gap-3">
                     {/* Player Photo */}
-                    <div className="size-14 rounded-lg bg-[#1c2e35] flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="size-14 border border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center overflow-hidden flex-shrink-0">
                       {player.photo_url ? (
                         <img
                           src={player.photo_url}
@@ -417,12 +443,12 @@ const TournamentPlayers = () => {
 
                     {/* Player Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold truncate">
+                      <h3 className="text-text-primary dark:text-slate-100 font-bold truncate">
                         {player.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded border ${getRoleColor(
+                          className={`text-[10px] px-2 py-0.5 border-2 ${getRoleColor(
                             player.role
                           )}`}
                         >
@@ -430,7 +456,7 @@ const TournamentPlayers = () => {
                         </span>
                         {getIconRoleLabel(player.icon_role) && (
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded border ${getIconRoleColor(
+                            className={`text-[10px] px-2 py-0.5 border-2 ${getIconRoleColor(
                               player.icon_role
                             )}`}
                           >
@@ -438,7 +464,7 @@ const TournamentPlayers = () => {
                           </span>
                         )}
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded border ${getStatusColor(
+                          className={`text-[10px] px-2 py-0.5 border-2 ${getStatusColor(
                             player.status
                           )}`}
                         >
@@ -453,7 +479,7 @@ const TournamentPlayers = () => {
                   <div className="mt-4 flex items-center justify-between">
                     <div>
                       <p className="text-text-secondary text-xs">Base Price</p>
-                      <p className="text-white font-bold">
+                      <p className="text-text-primary dark:text-slate-100 font-bold">
                         {formatShortCurrency(player.base_price)}
                       </p>
                     </div>
@@ -470,13 +496,13 @@ const TournamentPlayers = () => {
                   {/* Team Info (if sold) */}
                   {player.status === "sold" && player.team_id && (
                     <div
-                      className="mt-3 px-3 py-2 rounded-lg flex items-center gap-2"
+                      className="mt-3 px-3 py-2 flex items-center gap-2"
                       style={{
                         backgroundColor: getTeamColor(player.team_id) + "20",
                       }}
                     >
                       <span
-                        className="text-xs font-bold px-2 py-0.5 rounded"
+                        className="text-xs font-bold px-2 py-0.5"
                         style={{
                           backgroundColor: getTeamColor(player.team_id),
                           color: "#fff",
@@ -490,10 +516,10 @@ const TournamentPlayers = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="px-4 py-3 bg-card-hover border-t border-surface-dark flex gap-2">
+                <div className="px-4 py-3 bg-background-secondary dark:bg-background-dark border-t-2 border-text-primary dark:border-text-secondary-dark flex gap-2">
                   <button
                     onClick={() => setEditingPlayer(player)}
-                    className="flex-1 flex items-center justify-center gap-1 h-9 rounded-lg bg-[#283539] text-white text-sm font-medium hover:bg-[#3b4e54] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1 h-9 bg-background-tertiary dark:bg-card-dark text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider border border-text-primary dark:border-text-secondary-dark hover:bg-background-light transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       edit
@@ -502,7 +528,7 @@ const TournamentPlayers = () => {
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(player)}
-                    className="flex items-center justify-center size-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                    className="flex items-center justify-center size-9 bg-red-500/10 text-red-400 border border-red-400 hover:bg-red-500/20 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       delete
@@ -561,12 +587,12 @@ const TournamentPlayers = () => {
           title="Delete Player"
         >
           <div className="text-center">
-            <div className="size-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="size-16 border-2 border-red-400 bg-red-500/10 flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-3xl text-red-400">
                 warning
               </span>
             </div>
-            <p className="text-white text-lg font-medium mb-2">
+            <p className="text-text-primary dark:text-slate-100 text-lg font-medium mb-2">
               Are you sure you want to delete{" "}
               <span className="text-primary">{deleteConfirm.name}</span>?
             </p>
@@ -576,13 +602,13 @@ const TournamentPlayers = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-11 rounded-lg bg-[#283539] text-white font-bold hover:bg-[#3b4e54] transition-colors"
+                className="flex-1 h-11 bg-background-tertiary dark:bg-card-dark text-text-primary dark:text-slate-100 font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark hover:bg-background-light transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeletePlayer(deleteConfirm.id)}
-                className="flex-1 h-11 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
+                className="flex-1 h-11 bg-red-500 text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark hover:bg-red-600 transition-colors shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
               >
                 Delete
               </button>
@@ -592,7 +618,7 @@ const TournamentPlayers = () => {
       )}
 
       {/* Trademark Footer */}
-      <div className="text-center py-4 text-text-secondary/50 text-xs border-t border-[#283539]">
+      <div className="text-center py-4 text-text-secondary/50 text-xs border-t-2 border-text-primary dark:border-text-secondary-dark">
         © {new Date().getFullYear()} Made by{" "}
         <span className="text-primary">Nikhil</span>
       </div>
@@ -812,7 +838,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
       value: "none",
       label: "No Icon",
       description: "Regular player",
-      color: "bg-[#1c2e35] text-text-secondary border-[#283539]",
+      color: "bg-background-secondary dark:bg-background-dark text-text-secondary border-text-primary dark:border-text-secondary-dark",
       icon: "radio_button_unchecked",
     },
     {
@@ -851,7 +877,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
       {/* Photo Upload */}
       <div className="flex justify-center">
         <label className="cursor-pointer group">
-          <div className="size-24 rounded-full bg-[#283539] border-2 border-dashed border-[#3b4e54] group-hover:border-primary flex items-center justify-center overflow-hidden transition-colors">
+          <div className="size-24 rounded-full bg-background-tertiary dark:bg-background-dark border-2 border-dashed border-text-secondary dark:border-text-secondary-dark group-hover:border-primary flex items-center justify-center overflow-hidden transition-colors">
             {photoPreview ? (
               <img
                 src={photoPreview}
@@ -886,7 +912,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Virat Kohli"
-          className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+          className="w-full h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
 
@@ -901,10 +927,10 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
               key={role.value}
               type="button"
               onClick={() => setFormData({ ...formData, role: role.value })}
-              className={`h-10 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+              className={`h-10 text-xs font-bold border-2 transition-all flex items-center justify-center gap-2 ${
                 formData.role === role.value
                   ? role.color
-                  : "bg-[#1c2e35] text-text-secondary border-[#283539] hover:bg-[#283539]"
+                  : "bg-background-secondary dark:bg-background-dark text-text-secondary border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
               }`}
             >
               <span className="material-symbols-outlined text-sm">
@@ -940,19 +966,19 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                       : item.value,
                 })
               }
-              className={`w-full h-12 rounded-lg border text-left px-3 flex items-center gap-3 transition-all ${
+              className={`w-full h-12 border-2 text-left px-3 flex items-center gap-3 transition-all ${
                 formData.icon_role === item.value ||
                 (item.value === "icon-player" &&
                   (formData.icon_role || "").startsWith("icon-player"))
                   ? `${item.color} shadow-[0_0_0_1px_rgba(13,185,242,0.3)]`
-                  : "bg-[#1c2e35] text-text-secondary border-[#283539] hover:bg-[#283539]"
+                  : "bg-background-secondary dark:bg-background-dark text-text-secondary border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">
                 {item.icon}
               </span>
               <div className="leading-tight">
-                <p className="text-sm font-semibold text-white">{item.label}</p>
+                <p className="text-sm font-semibold text-text-primary dark:text-slate-100">{item.label}</p>
                 <p className="text-[11px] text-text-secondary/80">
                   {item.description}
                 </p>
@@ -963,7 +989,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
 
         {/* Icon Order Option - Only shown when Icon Player is selected */}
         {(formData.icon_role || "").startsWith("icon-player") && (
-          <div className="mt-3 p-3 rounded-lg bg-[#1c2e35] border border-[#283539]">
+          <div className="mt-3 p-3 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark">
             <label className="block text-xs font-medium text-text-secondary mb-2">
               Auction Order
             </label>
@@ -976,11 +1002,11 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                     icon_role: "icon-player-sequence",
                   })
                 }
-                className={`h-10 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                className={`h-10 text-xs font-bold border-2 transition-all flex items-center justify-center gap-2 ${
                   formData.icon_role === "icon-player-sequence" ||
                   formData.icon_role === "icon-player"
                     ? "bg-primary/10 text-primary border-primary/30"
-                    : "bg-[#283539] text-text-secondary border-[#3b4e54] hover:bg-[#3b4e54]"
+                    : "bg-background-tertiary dark:bg-background-dark text-text-secondary border-text-secondary dark:border-text-secondary-dark hover:bg-background-light"
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">
@@ -993,10 +1019,10 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                 onClick={() =>
                   setFormData({ ...formData, icon_role: "icon-player-random" })
                 }
-                className={`h-10 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                className={`h-10 text-xs font-bold border-2 transition-all flex items-center justify-center gap-2 ${
                   formData.icon_role === "icon-player-random"
                     ? "bg-primary/10 text-primary border-primary/30"
-                    : "bg-[#283539] text-text-secondary border-[#3b4e54] hover:bg-[#3b4e54]"
+                    : "bg-background-tertiary dark:bg-background-dark text-text-secondary border-text-secondary dark:border-text-secondary-dark hover:bg-background-light"
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">
@@ -1025,10 +1051,10 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                   setShowCustomPrice(false);
                   setCustomPriceValue("");
                 }}
-                className={`h-10 rounded-lg text-sm font-bold transition-all ${
+                className={`h-10 text-sm font-bold transition-all ${
                   formData.base_price === option.value && !showCustomPrice
-                    ? "bg-primary text-background-dark"
-                    : "bg-[#1c2e35] text-white hover:bg-[#283539]"
+                    ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-[var(--border-color)]"
                 }`}
               >
                 {option.label}
@@ -1039,10 +1065,10 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
           <button
             type="button"
             onClick={() => setShowCustomPrice(!showCustomPrice)}
-            className={`w-full h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`w-full h-10 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               showCustomPrice
-                ? "bg-primary text-background-dark"
-                : "bg-[#1c2e35] text-white hover:bg-[#283539] border border-dashed border-[#3b4e54]"
+                ? "bg-primary text-white border-2 border-[var(--border-color)]"
+                : "bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-color)]"
             }`}
           >
             <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -1056,19 +1082,19 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                 value={customPriceValue}
                 onChange={handleCustomPriceChange}
                 placeholder="Enter custom points"
-                className="flex-1 h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 h-11 px-4 bg-[var(--bg-secondary)] border-2 border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-text-secondary/60 focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={applyCustomPrice}
-                className="px-4 h-11 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors"
+                className="px-4 h-11 bg-primary hover:bg-primary-dark text-white font-bold border-2 border-[var(--border-color)] transition-colors"
               >
                 Set
               </button>
             </div>
           )}
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#1c2e35] border border-[#283539]">
+          <div className="flex items-center justify-between p-3 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark">
             <span className="text-text-secondary text-sm">
               Selected Base Price:
             </span>
@@ -1090,14 +1116,14 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
               key={status}
               type="button"
               onClick={() => setFormData({ ...formData, status })}
-              className={`h-10 rounded-lg text-xs font-bold border transition-all capitalize ${
+              className={`h-10 text-xs font-bold border-2 transition-all capitalize ${
                 formData.status === status
                   ? status === "sold"
                     ? "bg-green-500/20 text-green-400 border-green-500/30"
                     : status === "unsold"
                     ? "bg-red-500/20 text-red-400 border-red-500/30"
                     : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                  : "bg-[#1c2e35] text-text-secondary border-[#283539] hover:bg-[#283539]"
+                  : "bg-background-secondary dark:bg-background-dark text-text-secondary border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
               }`}
             >
               {status}
@@ -1118,7 +1144,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
               onChange={(e) =>
                 setFormData({ ...formData, team_id: e.target.value })
               }
-              className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white focus:outline-none focus:border-primary transition-colors"
+              className="w-full h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 focus:outline-none focus:border-primary transition-colors"
             >
               <option value="">Select Team</option>
               {teams.map((team) => (
@@ -1142,7 +1168,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
                   sold_price: parseInt(e.target.value, 10) || 0,
                 })
               }
-              className="w-full h-11 px-4 rounded-lg bg-[#1c2e35] border border-[#283539] text-white focus:outline-none focus:border-primary transition-colors"
+              className="w-full h-11 px-4 bg-background-secondary dark:bg-background-dark border-2 border-text-primary dark:border-text-secondary-dark text-text-primary dark:text-slate-100 focus:outline-none focus:border-primary transition-colors"
             />
           </div>
         </>
@@ -1152,7 +1178,7 @@ const EditPlayerForm = ({ player, teams, onClose, onSuccess }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-11 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full h-11 bg-primary hover:bg-primary-dark text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[2px_2px_0px_var(--border-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)]"
       >
         {loading ? (
           <>
