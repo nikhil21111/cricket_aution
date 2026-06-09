@@ -524,7 +524,7 @@ const TournamentTeams = () => {
               search
             </span>
             <input
-              className="w-full h-12 pl-12 pr-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark focus:border-primary text-text-primary dark:text-slate-100 placeholder-text-secondary/50 font-mono text-sm tracking-tight outline-none shadow-[3px_3px_0px_var(--border-color)]"
+              className="w-full h-12 pl-12 pr-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark focus:border-primary text-text-primary dark:text-slate-100 placeholder-[#475569]/50 dark:placeholder-[#94a3b8]/50 font-mono text-sm tracking-tight outline-none shadow-[3px_3px_0px_var(--border-color)]"
               placeholder="Search teams by name..."
               type="text"
               value={searchQuery}
