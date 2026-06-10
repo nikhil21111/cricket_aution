@@ -41,11 +41,14 @@ describe('Currency Formatting', () => {
     it('should format thousands with one decimal', () => {
       expect(formatShortCurrency(1000)).toBe('1K pts');
       expect(formatShortCurrency(5500)).toBe('5.5K pts');
+      expect(formatShortCurrency(5550)).toBe('5.55K pts');
+      expect(formatShortCurrency(2456.6666666666665)).toBe('2.46K pts');
     });
 
     it('should format millions with one decimal', () => {
       expect(formatShortCurrency(1000000)).toBe('1.0M pts');
       expect(formatShortCurrency(2500000)).toBe('2.5M pts');
+      expect(formatShortCurrency(2555000)).toBe('2.56M pts');
     });
 
     it('should handle null/undefined', () => {

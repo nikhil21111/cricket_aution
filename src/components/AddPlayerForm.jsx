@@ -45,7 +45,7 @@ const AddPlayerForm = ({
         photo_url = await uploadImage("players", photoFile);
       }
 
-      const { error } = await supabase.from("players").insert({
+      const { data, error } = await supabase.from("players").insert({
         name: formData.name,
         role: formData.role,
         icon_role: formData.icon_role,
@@ -53,12 +53,12 @@ const AddPlayerForm = ({
         photo_url,
         status: "available",
         tournament_id: tournamentId,
-      });
+      }).select();
 
       if (error) throw error;
 
       toast.success("Player added successfully!");
-      onSuccess?.();
+      onSuccess?.(data && data[0]);
       onClose();
     } catch (error) {
       toast.error(error.message || "Failed to add player");

@@ -1,10 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import toast from "react-hot-toast";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Check if we should use mock database
-const useMock = !supabaseUrl || !supabaseAnonKey || 
+const useMock = import.meta.env.MODE === 'test' ||
+  !supabaseUrl || !supabaseAnonKey || 
   !supabaseUrl.startsWith("https://") ||
   supabaseUrl.includes("your_") || 
   supabaseUrl.includes("placeholder") || 
@@ -177,6 +179,7 @@ if (useMock) {
           } else if (actualTableName === "auction_state") {
             newRow.is_live = newRow.is_live || false;
             newRow.highest_bid = newRow.highest_bid || 0;
+            newRow.bid_history = newRow.bid_history || null;
           }
 
           return newRow;
@@ -310,6 +313,12 @@ if (useMock) {
       async signOut() {
         return { error: null };
       },
+      async signInWithOAuth({ provider }) {
+        // In mock mode, simulate redirect by showing a toast-compatible response
+        console.warn(`[Mock] OAuth with ${provider} is not supported in mock mode. Configure real Supabase credentials.`);
+        return { data: null, error: { message: `OAuth with ${provider} requires real Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.` } };
+      },
+
     },
 
     from(tableName) {
@@ -371,17 +380,54 @@ export const uploadImage = async (bucket, file) => {
     .toString(36)
     .substr(2, 9)}.${fileExt}`;
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(fileName, file);
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file);
 
-  if (error) throw error;
+    if (error) {
+      // If bucket is not found, attempt to create it dynamically
+      if (
+        error.message?.toLowerCase().includes("bucket") ||
+        error.message?.toLowerCase().includes("not found") ||
+        error.status === 404 ||
+        error.status === 400
+      ) {
+        console.log(`Bucket '${bucket}' not found. Attempting to create...`);
+        const { error: createError } = await supabase.storage.createBucket(bucket, {
+          public: true,
+        });
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(fileName);
+        if (!createError) {
+          // Retry uploading
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, file);
 
-  return publicUrl;
+          if (!retryError) {
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from(bucket).getPublicUrl(fileName);
+            return publicUrl;
+          }
+        }
+      }
+      throw error;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+    return publicUrl;
+  } catch (err) {
+    console.error("Storage upload failed:", err);
+    toast.error(
+      `Warning: Storage bucket '${bucket}' not found in Supabase. Go to Supabase Console > Storage, create a new PUBLIC bucket named '${bucket}', and try again. Added successfully without image.`,
+      { duration: 7000 }
+    );
+    return null; // Fallback so form submission doesn't fail
+  }
 };
 
 // Format currency in points format
@@ -395,7 +441,11 @@ export const formatCurrency = (amount) => {
     const value = amount / 1000;
     return `${value.toFixed(value % 1 === 0 ? 0 : 2)}K pts`;
   }
-  return `${amount.toLocaleString()} pts`;
+  const rounded = Number(amount);
+  if (rounded % 1 !== 0) {
+    return `${rounded.toFixed(2)} pts`;
+  }
+  return `${rounded.toLocaleString()} pts`;
 };
 
 // Format short currency
@@ -403,9 +453,20 @@ export const formatShortCurrency = (amount) => {
   if (!amount && amount !== 0) return "0 pts";
 
   if (amount >= 1000000) {
-    return `${(amount / 1000000).toFixed(1)}M pts`;
+    const val = amount / 1000000;
+    const hasMoreThanOneDecimal = Number(val.toFixed(1)) !== val;
+    return `${val.toFixed(hasMoreThanOneDecimal ? 2 : 1)}M pts`;
   } else if (amount >= 1000) {
-    return `${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1)}K pts`;
+    const val = amount / 1000;
+    if (val % 1 === 0) {
+      return `${val.toFixed(0)}K pts`;
+    }
+    const hasMoreThanOneDecimal = Number(val.toFixed(1)) !== val;
+    return `${val.toFixed(hasMoreThanOneDecimal ? 2 : 1)}K pts`;
   }
-  return `${amount} pts`;
+  const rounded = Number(amount);
+  if (rounded % 1 !== 0) {
+    return `${rounded.toFixed(2)} pts`;
+  }
+  return `${rounded} pts`;
 };

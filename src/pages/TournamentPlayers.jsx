@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
 import AddPlayerForm from "../components/AddPlayerForm";
+import BulkImportPlayers from "../components/BulkImportPlayers";
 import toast from "react-hot-toast";
 
 const TournamentPlayers = () => {
@@ -20,8 +21,190 @@ const TournamentPlayers = () => {
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [isQuickEdit, setIsQuickEdit] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editedPlayers, setEditedPlayers] = useState({});
+  const [savingInlineIds, setSavingInlineIds] = useState(new Set());
+
+  const handleInlineChange = (playerId, fieldName, value) => {
+    setEditedPlayers(prev => {
+      const original = players.find(p => p.id === playerId);
+      const playerDraft = prev[playerId] || { ...original };
+      const nextDraft = { ...playerDraft, [fieldName]: value };
+      
+      if (fieldName === 'status') {
+        if (value === 'sold') {
+          nextDraft.team_id = nextDraft.team_id || (teams[0]?.id || "");
+          nextDraft.sold_price = nextDraft.sold_price || nextDraft.base_price || 500;
+        } else {
+          nextDraft.team_id = null;
+          nextDraft.sold_price = null;
+        }
+      }
+      
+      return { ...prev, [playerId]: nextDraft };
+    });
+  };
+
+  const isPlayerModified = (player) => {
+    const draft = editedPlayers[player.id];
+    if (!draft) return false;
+    return (
+      draft.name !== player.name ||
+      draft.role !== player.role ||
+      draft.icon_role !== player.icon_role ||
+      draft.base_price !== player.base_price ||
+      draft.status !== player.status ||
+      draft.team_id !== player.team_id ||
+      draft.sold_price !== player.sold_price
+    );
+  };
+
+  const handleResetInline = (playerId) => {
+    setEditedPlayers(prev => {
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
+  };
+
+  const handleSaveInline = async (playerId) => {
+    const draft = editedPlayers[playerId];
+    if (!draft) return;
+    const original = players.find(p => p.id === playerId);
+    if (!original) return;
+
+    if (!draft.name.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    if (draft.status === 'sold') {
+      if (!draft.team_id) {
+        toast.error("Please select a team for sold players");
+        return;
+      }
+      if (!draft.sold_price || draft.sold_price <= 0) {
+        toast.error("Sold price must be greater than 0");
+        return;
+      }
+      if (draft.sold_price < draft.base_price) {
+        toast.error("Sold price cannot be less than base price");
+        return;
+      }
+
+      const selectedTeam = teams.find(t => t.id === draft.team_id);
+      if (selectedTeam) {
+        let refundedPurse = selectedTeam.remaining_purse;
+        if (original.status === 'sold' && original.team_id === draft.team_id) {
+          refundedPurse += (original.sold_price || 0);
+        }
+        if (refundedPurse < draft.sold_price) {
+          toast.error(`Team ${selectedTeam.short_name} does not have enough budget (${refundedPurse} pts available)`);
+          return;
+        }
+      }
+    }
+
+    setSavingInlineIds(prev => new Set(prev).add(playerId));
+    try {
+      const { error: playerError } = await supabase
+        .from("players")
+        .update({
+          name: draft.name,
+          role: draft.role,
+          base_price: draft.base_price,
+          status: draft.status,
+          team_id: draft.team_id,
+          sold_price: draft.sold_price,
+          icon_role: draft.icon_role,
+        })
+        .eq("id", playerId);
+
+      if (playerError) throw playerError;
+
+      const purseUpdates = new Map();
+      const iconUpdates = new Map();
+
+      if (original.status === "sold" && original.team_id) {
+        const prevTeam = teams.find((t) => t.id === original.team_id);
+        if (prevTeam) {
+          purseUpdates.set(
+            original.team_id,
+            (prevTeam.remaining_purse || 0) + (original.sold_price || 0)
+          );
+          if (original.icon_role !== "none") {
+            iconUpdates.set(
+              original.team_id,
+              Math.max(0, (prevTeam.icon_player_count || 0) - 1)
+            );
+          }
+        }
+      }
+
+      if (draft.status === "sold" && draft.team_id) {
+        const currentTeam = teams.find((t) => t.id === draft.team_id);
+        if (currentTeam) {
+          const baseRemaining = purseUpdates.has(draft.team_id)
+            ? purseUpdates.get(draft.team_id)
+            : currentTeam.remaining_purse;
+          purseUpdates.set(draft.team_id, baseRemaining - draft.sold_price);
+
+          if (draft.icon_role !== "none") {
+            const baseIcon = iconUpdates.has(draft.team_id)
+              ? iconUpdates.get(draft.team_id)
+              : currentTeam.icon_player_count || 0;
+            iconUpdates.set(draft.team_id, baseIcon + 1);
+          }
+        }
+      }
+
+      if (purseUpdates.size > 0) {
+        const updates = Array.from(purseUpdates.entries()).map(
+          async ([teamId, remaining_purse]) => {
+            return supabase
+              .from("teams")
+              .update({ remaining_purse })
+              .eq("id", teamId);
+          }
+        );
+        await Promise.all(updates);
+      }
+
+      if (iconUpdates.size > 0) {
+        const updates = Array.from(iconUpdates.entries()).map(
+          async ([teamId, icon_player_count]) => {
+            return supabase
+              .from("teams")
+              .update({ icon_player_count })
+              .eq("id", teamId);
+          }
+        );
+        await Promise.all(updates);
+      }
+
+      setEditedPlayers(prev => {
+        const next = { ...prev };
+        delete next[playerId];
+        return next;
+      });
+
+      setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...draft } : p));
+      await fetchTeams();
+      toast.success(`${draft.name} updated successfully!`);
+    } catch (error) {
+      console.error("Save inline player failed:", error);
+      toast.error(error.message || "Failed to update player");
+    } finally {
+      setSavingInlineIds(prev => {
+        const next = new Set(prev);
+        next.delete(playerId);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     if (tournamentId) {
@@ -126,7 +309,7 @@ const TournamentPlayers = () => {
       if (error) throw error;
       toast.success("Player deleted successfully");
       setDeleteConfirm(null);
-      fetchPlayers();
+      setPlayers((prev) => prev.filter((p) => p.id !== playerId));
     } catch (error) {
       toast.error(error.message || "Failed to delete player");
     }
@@ -288,17 +471,31 @@ const TournamentPlayers = () => {
           
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined mr-2">person_add</span>
-            Add Player
+            <span className="material-symbols-outlined">person_add</span>
+            <span className="hidden md:inline">Add Player</span>
+          </button>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+          >
+            <span className="material-symbols-outlined">cloud_upload</span>
+            <span className="hidden md:inline">Bulk Import</span>
           </button>
           <Link
-            to={`/tournament/${tournamentId}/live`}
-            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+            to={`/tournament/${tournamentId}/teams`}
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
-            <span className="material-symbols-outlined mr-2">live_tv</span>
-            Go Live
+            <span className="material-symbols-outlined text-[18px]">groups</span>
+            <span className="hidden md:inline">Teams</span>
+          </Link>
+          <Link
+            to={`/tournament/${tournamentId}/live`}
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+          >
+            <span className="material-symbols-outlined">live_tv</span>
+            <span className="hidden md:inline">Go Live</span>
           </Link>
         </div>
       </header>
@@ -347,7 +544,7 @@ const TournamentPlayers = () => {
         </section>
 
         {/* Filters Section */}
-        <section className="flex flex-col sm:flex-row gap-4">
+        <section className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
           {/* Search */}
           <div className="relative flex-1">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
@@ -362,60 +559,248 @@ const TournamentPlayers = () => {
             />
           </div>
 
-          {/* Role Filter */}
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
-          >
-            <option value="all">All Roles</option>
-            <option value="batsman">Batsman</option>
-            <option value="bowler">Bowler</option>
-            <option value="all-rounder">All-Rounder</option>
-            <option value="wicket-keeper">Wicket Keeper</option>
-          </select>
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Role Filter */}
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
+            >
+              <option value="all">All Roles</option>
+              <option value="batsman">Batsman</option>
+              <option value="bowler">Bowler</option>
+              <option value="all-rounder">All-Rounder</option>
+              <option value="wicket-keeper">Wicket Keeper</option>
+            </select>
 
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
-          >
-            <option value="all">All Status</option>
-            <option value="available">Available</option>
-            <option value="sold">Sold</option>
-            <option value="unsold">Unsold</option>
-          </select>
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-12 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark text-text-primary dark:text-slate-100 font-mono text-sm tracking-tight focus:outline-none focus:border-primary transition-colors shadow-[3px_3px_0px_var(--border-color)]"
+            >
+              <option value="all">All Status</option>
+              <option value="available">Available</option>
+              <option value="sold">Sold</option>
+              <option value="unsold">Unsold</option>
+            </select>
+
+            {/* Layout Toggle */}
+            <div className="flex border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] overflow-hidden">
+              <button
+                onClick={() => setIsQuickEdit(false)}
+                className={`h-11 px-3 flex items-center gap-1 font-mono text-xs font-bold uppercase transition-colors ${
+                  !isQuickEdit
+                    ? "bg-primary text-white"
+                    : "bg-background-light dark:bg-card-dark text-text-secondary hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                Grid
+              </button>
+              <button
+                onClick={() => setIsQuickEdit(true)}
+                className={`h-11 px-3 flex items-center gap-1 font-mono text-xs font-bold uppercase transition-colors border-l-2 border-text-primary dark:border-text-secondary-dark ${
+                  isQuickEdit
+                    ? "bg-primary text-white"
+                    : "bg-background-light dark:bg-card-dark text-text-secondary hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">table_chart</span>
+                Spreadsheet
+              </button>
+            </div>
+          </div>
         </section>
 
-        {/* Players Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredPlayers.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-3xl text-text-secondary">
-                  person_off
-                </span>
-              </div>
-              <p className="text-text-secondary text-lg">No players found</p>
-              <p className="text-text-secondary/60 text-sm mt-1">
-                {searchQuery || filterRole !== "all" || filterStatus !== "all"
-                  ? "Try adjusting your filters"
-                  : "Add your first player to get started"}
-              </p>
-              {!searchQuery &&
-                filterRole === "all" &&
-                filterStatus === "all" && (
+        {/* Players Grid OR Table View */}
+        {filteredPlayers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)]">
+            <div className="size-16 border-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-3xl text-text-secondary">
+                person_off
+              </span>
+            </div>
+            <p className="text-text-secondary text-lg">No players found</p>
+            <p className="text-text-secondary/60 text-sm mt-1">
+              {searchQuery || filterRole !== "all" || filterStatus !== "all"
+                ? "Try adjusting your filters"
+                : "Add players to get started"}
+            </p>
+            {!searchQuery &&
+              filterRole === "all" &&
+              filterStatus === "all" && (
+                <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => setShowAddPlayer(true)}
-                    className="mt-4 px-4 py-2 bg-primary text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] hover:bg-primary-dark transition-colors"
+                    className="px-4 py-2 bg-primary text-white font-display font-bold uppercase tracking-wider border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] hover:bg-primary-dark transition-all"
                   >
                     Add Player
                   </button>
-                )}
-            </div>
-          ) : (
-            filteredPlayers.map((player) => (
+                  <button
+                    onClick={() => setShowBulkImport(true)}
+                    className="px-4 py-2 bg-background-light dark:bg-card-dark text-text-primary border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] hover:bg-background-tertiary transition-all"
+                  >
+                    Bulk Import
+                  </button>
+                </div>
+              )}
+          </div>
+        ) : isQuickEdit ? (
+          /* Quick Edit / Spreadsheet View */
+          <div className="overflow-x-auto border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[3px_3px_0px_var(--border-color)]">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead>
+                <tr className="border-b-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark font-mono text-xs uppercase text-text-secondary">
+                  <th className="p-3 w-16">Photo</th>
+                  <th className="p-3 min-w-[200px]">Player Name</th>
+                  <th className="p-3 w-44">Role</th>
+                  <th className="p-3 w-36">Base Price</th>
+                  <th className="p-3 w-36">Status</th>
+                  <th className="p-3 w-48">Team Selection</th>
+                  <th className="p-3 w-36">Sold Price</th>
+                  <th className="p-3 w-28 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-text-primary/10">
+                {filteredPlayers.map((player) => {
+                  const draft = editedPlayers[player.id] || player;
+                  const isModified = isPlayerModified(player);
+                  const isSaving = savingInlineIds.has(player.id);
+                  
+                  return (
+                    <tr key={player.id} className="hover:bg-background-secondary/40 font-mono text-xs">
+                      {/* Photo Column */}
+                      <td className="p-3">
+                        <div className="size-10 border border-text-primary/20 bg-background-secondary dark:bg-background-dark flex items-center justify-center overflow-hidden">
+                          {player.photo_url ? (
+                            <img src={player.photo_url} alt="" className="size-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-lg text-text-secondary">person</span>
+                          )}
+                        </div>
+                      </td>
+                      
+                      {/* Name Column */}
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          value={draft.name}
+                          onChange={(e) => handleInlineChange(player.id, 'name', e.target.value)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-sans font-semibold text-sm outline-none"
+                        />
+                      </td>
+                      
+                      {/* Role Column */}
+                      <td className="p-3">
+                        <select
+                          value={draft.role}
+                          onChange={(e) => handleInlineChange(player.id, 'role', e.target.value)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-sans outline-none"
+                        >
+                          <option value="batsman">Batsman</option>
+                          <option value="bowler">Bowler</option>
+                          <option value="all-rounder">All-Rounder</option>
+                          <option value="wicket-keeper">Wicket Keeper</option>
+                        </select>
+                      </td>
+                      
+                      {/* Base Price Column */}
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          value={draft.base_price}
+                          onChange={(e) => handleInlineChange(player.id, 'base_price', parseInt(e.target.value, 10) || 0)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-mono text-sm outline-none"
+                        />
+                      </td>
+                      
+                      {/* Status Column */}
+                      <td className="p-3">
+                        <select
+                          value={draft.status}
+                          onChange={(e) => handleInlineChange(player.id, 'status', e.target.value)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-sans outline-none"
+                        >
+                          <option value="available">Available</option>
+                          <option value="sold">Sold</option>
+                          <option value="unsold">Unsold</option>
+                        </select>
+                      </td>
+                      
+                      {/* Team Selection Column */}
+                      <td className="p-3">
+                        <select
+                          value={draft.team_id || ""}
+                          disabled={draft.status !== 'sold'}
+                          onChange={(e) => handleInlineChange(player.id, 'team_id', e.target.value || null)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-sans outline-none disabled:opacity-40"
+                        >
+                          <option value="">Select Team</option>
+                          {teams.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} ({t.short_name})</option>
+                          ))}
+                        </select>
+                      </td>
+                      
+                      {/* Sold Price Column */}
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          disabled={draft.status !== 'sold'}
+                          value={draft.sold_price || ""}
+                          onChange={(e) => handleInlineChange(player.id, 'sold_price', parseInt(e.target.value, 10) || 0)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-mono text-sm outline-none disabled:opacity-40"
+                        />
+                      </td>
+                      
+                      {/* Actions Column */}
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center items-center gap-1.5">
+                          {isModified ? (
+                            <>
+                              <button
+                                onClick={() => handleSaveInline(player.id)}
+                                disabled={isSaving}
+                                className="flex items-center justify-center size-8 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors rounded"
+                                title="Save Changes"
+                              >
+                                {isSaving ? (
+                                  <div className="size-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <span className="material-symbols-outlined text-[18px]">check</span>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleResetInline(player.id)}
+                                disabled={isSaving}
+                                className="flex items-center justify-center size-8 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors rounded"
+                                title="Discard Changes"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(player)}
+                              className="flex items-center justify-center size-8 bg-red-500/10 text-red-400 border border-red-400/30 hover:bg-red-500/20 transition-colors rounded"
+                              title="Delete Player"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Normal Grid View */
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredPlayers.map((player) => (
               <div
                 key={player.id}
                 className="bg-background-light dark:bg-card-dark border-2 border-text-primary dark:border-text-secondary-dark overflow-hidden shadow-[3px_3px_0px_var(--border-color)] hover:shadow-[4px_4px_0px_var(--border-color)] transition-all group"
@@ -532,9 +917,9 @@ const TournamentPlayers = () => {
                   </button>
                 </div>
               </div>
-            ))
-          )}
-        </section>
+            ))}
+          </section>
+        )}
       </main>
 
       {/* Add Player Modal */}
@@ -548,9 +933,35 @@ const TournamentPlayers = () => {
             tournamentId={tournamentId}
             defaultBasePrice={tournament?.default_base_price}
             onClose={() => setShowAddPlayer(false)}
-            onSuccess={() => {
-              fetchPlayers();
+            onSuccess={(newPlayer) => {
+              if (newPlayer) {
+                setPlayers((prev) => [...prev, newPlayer]);
+              } else {
+                fetchPlayers();
+              }
               setShowAddPlayer(false);
+            }}
+          />
+        </Modal>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowBulkImport(false)}
+          title="Bulk Import Players"
+        >
+          <BulkImportPlayers
+            tournamentId={tournamentId}
+            defaultBasePrice={tournament?.default_base_price}
+            onClose={() => setShowBulkImport(false)}
+            onSuccess={(importedList) => {
+              if (Array.isArray(importedList)) {
+                setPlayers((prev) => [...prev, ...importedList]);
+              } else {
+                fetchPlayers();
+              }
             }}
           />
         </Modal>
@@ -567,8 +978,14 @@ const TournamentPlayers = () => {
             player={editingPlayer}
             teams={teams}
             onClose={() => setEditingPlayer(null)}
-            onSuccess={() => {
-              fetchPlayers();
+            onSuccess={(updatedPlayer) => {
+              if (updatedPlayer) {
+                setPlayers((prev) =>
+                  prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p))
+                );
+              } else {
+                fetchPlayers();
+              }
               setEditingPlayer(null);
             }}
           />
@@ -613,11 +1030,7 @@ const TournamentPlayers = () => {
         </Modal>
       )}
 
-      {/* Trademark Footer */}
-      <div className="text-center py-4 text-text-secondary/50 text-xs border-t-2 border-text-primary dark:border-text-secondary-dark">
-        © {new Date().getFullYear()} Made by{" "}
-        <span className="text-primary">Nikhil</span>
-      </div>
+
     </div>
   );
 };

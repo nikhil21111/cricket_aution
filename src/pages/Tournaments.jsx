@@ -260,7 +260,7 @@ const Tournaments = () => {
                           e.stopPropagation();
                           setDeleteConfirm(tournament);
                         }}
-                        className="size-8 border-2 border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="size-8 border-2 border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         title="Delete Tournament"
                       >
                         <span className="material-symbols-outlined text-lg">
@@ -310,11 +310,7 @@ const Tournaments = () => {
         />
       )}
 
-      {/* Trademark Footer */}
-      <footer className="text-center py-6 text-text-secondary dark:text-text-secondary-dark font-mono font-bold uppercase text-xs border-t-3 border-text-primary dark:border-text-secondary-dark mt-16 bg-background-light dark:bg-background-dark">
-        © {new Date().getFullYear()} Made by{" "}
-        <span className="text-primary font-black">Nikhil</span>
-      </footer>
+
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (

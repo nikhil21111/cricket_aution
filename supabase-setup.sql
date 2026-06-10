@@ -1,12 +1,14 @@
 -- SQL Schema for Auction Pro App
--- Run this in Supabase SQL Editor
+-- Run this in Supabase SQL Editor to configure your entire project
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- =============================================
--- 1. CREATE TOURNAMENTS TABLE
--- =============================================
+-- =========================================================
+-- 1. TABLE CREATION
+-- =========================================================
+
+-- Create Tournaments Table
 CREATE TABLE IF NOT EXISTS tournaments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -21,9 +23,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =============================================
--- 2. CREATE TEAMS TABLE
--- =============================================
+-- Create Teams Table
 CREATE TABLE IF NOT EXISTS teams (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE,
@@ -37,9 +37,7 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =============================================
--- 3. CREATE PLAYERS TABLE
--- =============================================
+-- Create Players Table
 CREATE TABLE IF NOT EXISTS players (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE,
@@ -54,9 +52,7 @@ CREATE TABLE IF NOT EXISTS players (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =============================================
--- 4. CREATE AUCTION_STATE TABLE
--- =============================================
+-- Create Auction State Table
 CREATE TABLE IF NOT EXISTS auction_state (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE,
@@ -68,23 +64,50 @@ CREATE TABLE IF NOT EXISTS auction_state (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- =============================================
--- 5. CREATE INDEXES
--- =============================================
+-- =========================================================
+-- 2. CREATE INDEXES
+-- =========================================================
 CREATE INDEX IF NOT EXISTS idx_tournaments_user_id ON tournaments(user_id);
 CREATE INDEX IF NOT EXISTS idx_teams_tournament_id ON teams(tournament_id);
 CREATE INDEX IF NOT EXISTS idx_players_tournament_id ON players(tournament_id);
 CREATE INDEX IF NOT EXISTS idx_auction_state_tournament_id ON auction_state(tournament_id);
 
--- =============================================
--- 6. ENABLE ROW LEVEL SECURITY
--- =============================================
+-- =========================================================
+-- 3. STORAGE BUCKET CREATION & POLICIES
+-- =========================================================
+
+-- Create storage buckets if they don't exist
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('players', 'players', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('logos', 'logos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Enable public select (viewing) on both storage buckets
+CREATE POLICY "Public Read Access for Players Bucket" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'players');
+
+CREATE POLICY "Public Read Access for Logos Bucket" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'logos');
+
+-- Enable public insert (uploading) on both storage buckets
+CREATE POLICY "Public Write Access for Players Bucket" ON storage.objects 
+  FOR INSERT WITH CHECK (bucket_id = 'players');
+
+CREATE POLICY "Public Write Access for Logos Bucket" ON storage.objects 
+  FOR INSERT WITH CHECK (bucket_id = 'logos');
+
+-- =========================================================
+-- 4. ROW LEVEL SECURITY (RLS) & OWNER POLICIES
+-- =========================================================
 ALTER TABLE tournaments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auction_state ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for tournaments
+-- Owner Policies for Tournaments
 DROP POLICY IF EXISTS "Users can view their own tournaments" ON tournaments;
 CREATE POLICY "Users can view their own tournaments" ON tournaments
   FOR SELECT USING (auth.uid() = user_id);
@@ -101,7 +124,7 @@ DROP POLICY IF EXISTS "Users can delete their own tournaments" ON tournaments;
 CREATE POLICY "Users can delete their own tournaments" ON tournaments
   FOR DELETE USING (auth.uid() = user_id);
 
--- RLS Policies for teams (based on tournament ownership)
+-- Owner Policies for Teams
 DROP POLICY IF EXISTS "Users can view teams in their tournaments" ON teams;
 CREATE POLICY "Users can view teams in their tournaments" ON teams
   FOR SELECT USING (
@@ -142,7 +165,7 @@ CREATE POLICY "Users can delete teams in their tournaments" ON teams
     )
   );
 
--- RLS Policies for players (based on tournament ownership)
+-- Owner Policies for Players
 DROP POLICY IF EXISTS "Users can view players in their tournaments" ON players;
 CREATE POLICY "Users can view players in their tournaments" ON players
   FOR SELECT USING (
@@ -183,7 +206,7 @@ CREATE POLICY "Users can delete players in their tournaments" ON players
     )
   );
 
--- RLS Policies for auction_state (based on tournament ownership)
+-- Owner Policies for Auction State
 DROP POLICY IF EXISTS "Users can view auction state in their tournaments" ON auction_state;
 CREATE POLICY "Users can view auction state in their tournaments" ON auction_state
   FOR SELECT USING (
@@ -214,7 +237,63 @@ CREATE POLICY "Users can insert auction state in their tournaments" ON auction_s
     )
   );
 
--- Function to update updated_at timestamp
+-- =========================================================
+-- 5. PUBLIC VIEWER POLICIES (LIVE OR COMPLETED)
+-- =========================================================
+
+-- Teams Public Read
+DROP POLICY IF EXISTS "Public read teams when live or completed" ON teams;
+DROP POLICY IF EXISTS "Public can view live teams" ON teams;
+CREATE POLICY "Public read teams when live or completed" ON teams
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM tournaments t
+      WHERE t.id = teams.tournament_id
+      AND (
+        t.status = 'completed' OR 
+        EXISTS (SELECT 1 FROM auction_state a WHERE a.tournament_id = t.id AND a.is_live = TRUE)
+      )
+    )
+  );
+
+-- Players Public Read
+DROP POLICY IF EXISTS "Public read players when live or completed" ON players;
+DROP POLICY IF EXISTS "Public can view live players" ON players;
+CREATE POLICY "Public read players when live or completed" ON players
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM tournaments t
+      WHERE t.id = players.tournament_id
+      AND (
+        t.status = 'completed' OR 
+        EXISTS (SELECT 1 FROM auction_state a WHERE a.tournament_id = t.id AND a.is_live = TRUE)
+      )
+    )
+  );
+
+-- Auction State Public Read
+DROP POLICY IF EXISTS "Public read auction state when live or completed" ON auction_state;
+DROP POLICY IF EXISTS "Public can view live auction_state" ON auction_state;
+CREATE POLICY "Public read auction state when live or completed" ON auction_state
+  FOR SELECT USING (
+    is_live = TRUE OR 
+    EXISTS (SELECT 1 FROM tournaments t WHERE t.id = auction_state.tournament_id AND t.status = 'completed')
+  );
+
+-- Tournaments Public Read View
+DROP VIEW IF EXISTS public_live_tournaments;
+CREATE VIEW public_live_tournaments AS
+SELECT id, name, description, status
+FROM tournaments
+WHERE 
+  status = 'completed' OR 
+  id IN (SELECT tournament_id FROM auction_state WHERE is_live = TRUE);
+
+GRANT SELECT ON public_live_tournaments TO anon;
+
+-- =========================================================
+-- 6. TRIGGERS & TIMESTAMP FUNCTIONS
+-- =========================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -223,59 +302,49 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger for tournaments updated_at
 DROP TRIGGER IF EXISTS update_tournaments_updated_at ON tournaments;
 CREATE TRIGGER update_tournaments_updated_at
   BEFORE UPDATE ON tournaments
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- =============================================
--- 7. PUBLIC READ-ONLY POLICIES FOR LIVE VIEWER
--- =============================================
--- These allow anonymous/public users (anon key) to read live data when a tournament is live.
--- Writes remain restricted by the owner policies above.
+-- =========================================================
+-- 7. ENABLE SUPABASE REALTIME UPDATES
+-- =========================================================
+DO $$
+BEGIN
+  -- Create publication if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+  
+  -- Add auction_state table if not already in publication
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_rel pr 
+    JOIN pg_class c ON pr.prrelid = c.oid 
+    JOIN pg_publication p ON pr.prpubid = p.oid 
+    WHERE p.pubname = 'supabase_realtime' AND c.relname = 'auction_state'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE auction_state;
+  END IF;
 
--- auction_state public read when live
-DROP POLICY IF EXISTS "Public can view live auction_state" ON auction_state;
-CREATE POLICY "Public can view live auction_state" ON auction_state
-  FOR SELECT USING (is_live = TRUE);
+  -- Add teams table if not already in publication
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_rel pr 
+    JOIN pg_class c ON pr.prrelid = c.oid 
+    JOIN pg_publication p ON pr.prpubid = p.oid 
+    WHERE p.pubname = 'supabase_realtime' AND c.relname = 'teams'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+  END IF;
 
--- teams public read when tournament is live
-DROP POLICY IF EXISTS "Public can view live teams" ON teams;
-CREATE POLICY "Public can view live teams" ON teams
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM auction_state a
-      WHERE a.tournament_id = teams.tournament_id
-      AND a.is_live = TRUE
-    )
-  );
-
--- players public read when tournament is live
-DROP POLICY IF EXISTS "Public can view live players" ON players;
-CREATE POLICY "Public can view live players" ON players
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM auction_state a
-      WHERE a.tournament_id = players.tournament_id
-      AND a.is_live = TRUE
-    )
-  );
-
--- tournaments public read (name/description/status) when live
-DROP POLICY IF EXISTS "Public can view live tournaments" ON tournaments;
-
--- Optional: create a public view to avoid recursion and keep RLS simple
-DROP VIEW IF EXISTS public_live_tournaments;
-CREATE VIEW public_live_tournaments AS
-SELECT id, name, description, status
-FROM tournaments
-WHERE id IN (SELECT tournament_id FROM auction_state WHERE is_live = TRUE);
-
-GRANT SELECT ON public_live_tournaments TO anon;
-
--- Enable Realtime publication for public viewer updates (run once)
-ALTER PUBLICATION supabase_realtime ADD TABLE auction_state;
-ALTER PUBLICATION supabase_realtime ADD TABLE teams;
-ALTER PUBLICATION supabase_realtime ADD TABLE players;
+  -- Add players table if not already in publication
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_rel pr 
+    JOIN pg_class c ON pr.prrelid = c.oid 
+    JOIN pg_publication p ON pr.prpubid = p.oid 
+    WHERE p.pubname = 'supabase_realtime' AND c.relname = 'players'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE players;
+  END IF;
+END $$;

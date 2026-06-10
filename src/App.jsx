@@ -138,10 +138,12 @@ function App() {
             position="top-center"
             toastOptions={{
               duration: 3000,
-              style: {
-                background: "#1c2e35",
-                color: "#fff",
-                border: "1px solid #283539",
+              className: "brutalist-toast",
+              success: {
+                className: "brutalist-toast success",
+              },
+              error: {
+                className: "brutalist-toast error",
               },
             }}
           />

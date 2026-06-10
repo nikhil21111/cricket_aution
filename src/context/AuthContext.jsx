@@ -52,12 +52,23 @@ export const AuthProvider = ({ children }) => {
     return { error };
   };
 
+  const signInWithOAuth = async (provider) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    });
+    return { data, error };
+  };
+
   const value = {
     user,
     loading,
     signUp,
     signIn,
     signOut,
+    signInWithOAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

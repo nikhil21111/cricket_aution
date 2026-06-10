@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
+import BulkImportTeams from "../components/BulkImportTeams";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -23,8 +24,97 @@ const TournamentTeams = () => {
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [selectedSquad, setSelectedSquad] = useState(null);
   const [showAddTeam, setShowAddTeam] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [isQuickEdit, setIsQuickEdit] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editedTeams, setEditedTeams] = useState({});
+  const [savingInlineIds, setSavingInlineIds] = useState(new Set());
+
+  const handleInlineChange = (teamId, fieldName, value) => {
+    setEditedTeams(prev => {
+      const original = teams.find(t => t.id === teamId);
+      const teamDraft = prev[teamId] || { ...original };
+      return { ...prev, [teamId]: { ...teamDraft, [fieldName]: value } };
+    });
+  };
+
+  const isTeamModified = (team) => {
+    const draft = editedTeams[team.id];
+    if (!draft) return false;
+    return (
+      draft.name !== team.name ||
+      draft.short_name !== team.short_name ||
+      draft.color !== team.color ||
+      draft.total_purse !== team.total_purse
+    );
+  };
+
+  const handleResetInline = (teamId) => {
+    setEditedTeams(prev => {
+      const next = { ...prev };
+      delete next[teamId];
+      return next;
+    });
+  };
+
+  const handleSaveInline = async (teamId) => {
+    const draft = editedTeams[teamId];
+    if (!draft) return;
+    const original = teams.find(t => t.id === teamId);
+    if (!original) return;
+
+    if (!draft.name.trim() || !draft.short_name.trim()) {
+      toast.error("Name and Short Name are required");
+      return;
+    }
+
+    if (draft.total_purse <= 0) {
+      toast.error("Budget must be greater than 0");
+      return;
+    }
+
+    const spent = original.total_purse - original.remaining_purse;
+    const nextRemaining = draft.total_purse - spent;
+    if (nextRemaining < 0) {
+      toast.error(`New budget is too low. Team has already spent ${spent} pts.`);
+      return;
+    }
+
+    setSavingInlineIds(prev => new Set(prev).add(teamId));
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .update({
+          name: draft.name,
+          short_name: draft.short_name.toUpperCase(),
+          color: draft.color,
+          total_purse: draft.total_purse,
+          remaining_purse: nextRemaining,
+        })
+        .eq("id", teamId);
+
+      if (error) throw error;
+
+      setEditedTeams(prev => {
+        const next = { ...prev };
+        delete next[teamId];
+        return next;
+      });
+
+      setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...draft, remaining_purse: nextRemaining, short_name: draft.short_name.toUpperCase() } : t));
+      toast.success(`${draft.name} updated successfully!`);
+    } catch (error) {
+      console.error("Save inline team failed:", error);
+      toast.error(error.message || "Failed to update team");
+    } finally {
+      setSavingInlineIds(prev => {
+        const next = new Set(prev);
+        next.delete(teamId);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     if (tournamentId) {
@@ -91,8 +181,14 @@ const TournamentTeams = () => {
       if (error) throw error;
       toast.success("Team deleted successfully");
       setDeleteConfirm(null);
-      fetchTeams();
-      fetchPlayers();
+      setTeams((prev) => prev.filter((t) => t.id !== teamId));
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.team_id === teamId
+            ? { ...p, team_id: null, status: "available", sold_price: null }
+            : p
+        )
+      );
     } catch (error) {
       toast.error(error.message || "Failed to delete team");
     }
@@ -206,137 +302,330 @@ const TournamentTeams = () => {
   // Download team squad as PDF
   const downloadSquadPDF = (team) => {
     const teamPlayers = players.filter((p) => p.team_id === team.id);
-    const grouped = groupPlayersByRole(teamPlayers);
     const iconCount = teamPlayers.filter(
       (p) => p.icon_role && p.icon_role !== "none"
     ).length;
 
+    const hexToRgb = (hex) => {
+      if (!hex) return [15, 23, 42]; // Slate default
+      let c = hex.replace("#", "");
+      if (c.length === 3) {
+        c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+      }
+      const r = parseInt(c.substring(0, 2), 16);
+      const g = parseInt(c.substring(2, 4), 16);
+      const b = parseInt(c.substring(4, 6), 16);
+      return [r, g, b];
+    };
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Header background
-    doc.setFillColor(28, 46, 53);
-    doc.rect(0, 0, pageWidth, 50, "F");
-
-    // Team Name
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont("helvetica", "bold");
-    doc.text(team.name, pageWidth / 2, 20, { align: "center" });
-
-    // Tournament Name
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(200, 200, 200);
-    doc.text(tournament?.name || "Tournament", pageWidth / 2, 30, {
-      align: "center",
-    });
-
-    // Team Stats
-    doc.setFontSize(10);
-    doc.setTextColor(13, 185, 242);
-    const statsText = `${
-      teamPlayers.length
-    } Players • Icon Players: ${iconCount} • Total Spent: ${formatShortCurrency(
-      team.total_purse - team.remaining_purse
-    )} • Remaining: ${formatShortCurrency(team.remaining_purse)}`;
-    doc.text(statsText, pageWidth / 2, 42, { align: "center" });
-
-    let yPosition = 60;
-
-    const roleLabels = {
-      batsman: "Batters",
-      bowler: "Bowlers",
-      "all-rounder": "All-Rounders",
-      "wicket-keeper": "Wicket-Keepers",
-      other: "Others",
+    // Helper: Draw standard page outline (Double Border)
+    const drawPageBorders = (pdf) => {
+      pdf.setDrawColor(15, 23, 42);
+      // Outer border (thick line)
+      pdf.setLineWidth(0.8);
+      pdf.rect(10, 10, pageWidth - 20, pageHeight - 20);
+      
+      // Inner border (thin line)
+      pdf.setLineWidth(0.25);
+      pdf.rect(11.5, 11.5, pageWidth - 23, pageHeight - 23);
     };
 
-    const roleColors = {
-      batsman: [59, 130, 246],
-      bowler: [239, 68, 68],
-      "all-rounder": [168, 85, 247],
-      "wicket-keeper": [234, 179, 8],
-      other: [107, 114, 128],
+    // Helper: Draw page header masthead
+    const drawPageHeader = (pdf) => {
+      // Top Strip line (thin)
+      pdf.setLineWidth(0.25);
+      pdf.setDrawColor(15, 23, 42);
+      pdf.line(11.5, 19.5, pageWidth - 11.5, 19.5);
+      
+      // Top Strip texts
+      pdf.setFont("courier", "bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text("OFFICIAL AUCTION DRAFT RECORD", 15, 16.5);
+      
+      const tourName = (tournament?.name || "TOURNAMENT").toUpperCase();
+      pdf.text(tourName, pageWidth / 2, 16.5, { align: "center" });
+      
+      const today = new Date().toISOString().split('T')[0];
+      pdf.text(`GEN: ${today}`, pageWidth - 15, 16.5, { align: "right" });
+      
+      // Top Strip line (thick)
+      pdf.setLineWidth(0.8);
+      pdf.line(11.5, 20.5, pageWidth - 11.5, 20.5);
+
+      // Logo initials block (using team color)
+      const [r, g, b] = hexToRgb(team.color);
+      pdf.setFillColor(r, g, b);
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.8);
+      pdf.rect(15, 24, 18, 18, "FD");
+
+      // Initials text inside logo box
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      const shortName = (team.short_name || "TM").toUpperCase();
+      if (shortName.length > 3) {
+        pdf.setFontSize(14);
+      } else if (shortName.length === 3) {
+        pdf.setFontSize(18);
+      } else {
+        pdf.setFontSize(22);
+      }
+      pdf.text(shortName, 24, 34.5, { align: "center" });
+
+      // Team Title and subtitle beside logo
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(18);
+      pdf.text(`${team.name.toUpperCase()} SQUAD ROSTER`, 37, 31.5);
+      
+      pdf.setFont("times", "italic");
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text("Official tournament roster draft manifest & squad stats", 37, 36.5);
+
+      // Stats strip borders
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.4);
+      pdf.line(11.5, 45, pageWidth - 11.5, 45);
+      
+      // Stats strip background
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(11.75, 45.2, pageWidth - 23.5, 7.6, "F");
+      
+      pdf.line(11.5, 53, pageWidth - 11.5, 53);
+
+      // Stats labels & values
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("courier", "bold");
+      pdf.setFontSize(8);
+
+      const spent = team.total_purse - team.remaining_purse;
+      const stats = [
+        { label: "PLAYERS", val: `${teamPlayers.length} / 15` },
+        { label: "ICON PLAYERS", val: `${iconCount}` },
+        { label: "TOTAL SPENT", val: formatShortCurrency(spent) },
+        { label: "REMAINING", val: formatShortCurrency(team.remaining_purse) }
+      ];
+
+      const segmentWidth = (pageWidth - 23) / 4;
+      stats.forEach((stat, i) => {
+        const xPos = 11.5 + i * segmentWidth + segmentWidth / 2;
+        pdf.text(`${stat.label}: ${stat.val}`, xPos, 50.2, { align: "center" });
+        if (i < 3) {
+          pdf.setLineWidth(0.15);
+          pdf.line(11.5 + (i + 1) * segmentWidth, 45.5, 11.5 + (i + 1) * segmentWidth, 52.5);
+        }
+      });
     };
 
-    // Add each role section
-    Object.entries(grouped).forEach(([role, rolePlayers]) => {
-      if (rolePlayers.length === 0) return;
+    // Draw page 1 setup
+    drawPageBorders(doc);
+    drawPageHeader(doc);
 
-      // Check if we need a new page
-      if (yPosition > 250) {
+    // Group players by role
+    const grouped = groupPlayersByRole(teamPlayers);
+
+    // Grid coordinates
+    let yLeft = 58;
+    let yRight = 58;
+
+    const drawSection = (colIndex, title, rolePlayers) => {
+      if (!rolePlayers || rolePlayers.length === 0) return;
+
+      const xStart = colIndex === 0 ? 16 : 111;
+      const colWidth = 83;
+      let y = colIndex === 0 ? yLeft : yRight;
+
+      // Calculate approximate height of this section: Header (8.5mm) + Rows (length * 7.2mm)
+      const sectionHeight = 8.5 + (rolePlayers.length * 7.2);
+      if (y + sectionHeight > 230) {
         doc.addPage();
-        yPosition = 20;
+        drawPageBorders(doc);
+        yLeft = 20;
+        yRight = 20;
+        y = 20;
       }
 
-      // Role header
-      const [r, g, b] = roleColors[role] || [107, 114, 128];
-      doc.setFillColor(r, g, b);
-      doc.roundedRect(14, yPosition - 5, pageWidth - 28, 10, 2, 2, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text(
-        `${roleLabels[role] || role} (${rolePlayers.length})`,
-        20,
-        yPosition + 2
-      );
+      // Draw Section Title bar (Double lines)
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.4);
+      doc.line(xStart, y, xStart + colWidth, y);
+      doc.line(xStart, y + 0.6, xStart + colWidth, y + 0.6);
 
-      yPosition += 15;
+      // Section Title Text
+      doc.setFont("times", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title.toUpperCase(), xStart, y + 4.5);
 
-      // Players table
-      const tableData = rolePlayers.map((player, index) => [
-        index + 1,
-        player.name,
-        getRoleLabel(player.role),
-        getIconLabel(player.icon_role),
-        formatShortCurrency(player.sold_price || 0),
-      ]);
+      // Section Player Count
+      doc.setFont("courier", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(225, 29, 72); // Crimson Red
+      const countText = `${rolePlayers.length} ${rolePlayers.length === 1 ? 'PLAYER' : 'PLAYERS'}`;
+      doc.text(countText, xStart + colWidth, y + 4.5, { align: "right" });
 
-      autoTable(doc, {
-        startY: yPosition,
-        head: [["#", "Player Name", "Role", "Icon", "Price"]],
-        body: tableData,
-        theme: "striped",
-        headStyles: {
-          fillColor: [40, 53, 57],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          fontSize: 9,
-        },
-        bodyStyles: {
-          textColor: [50, 50, 50],
-          fontSize: 9,
-        },
-        alternateRowStyles: {
-          fillColor: [240, 245, 250],
-        },
-        columnStyles: {
-          0: { cellWidth: 15, halign: "center" },
-          1: { cellWidth: "auto" },
-          2: { cellWidth: 28, halign: "center" },
-          3: { cellWidth: 28, halign: "center" },
-          4: { cellWidth: 35, halign: "right" },
-        },
-        margin: { left: 14, right: 14 },
+      // Line under header
+      doc.setLineWidth(0.25);
+      doc.line(xStart, y + 6, xStart + colWidth, y + 6);
+
+      y += 8.5;
+
+      // Render players
+      rolePlayers.forEach((player, idx) => {
+        if (idx > 0) {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(xStart, y - 1.5, xStart + colWidth, y - 1.5);
+        }
+
+        // Index number
+        doc.setFont("courier", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(148, 163, 184);
+        const numStr = String(idx + 1).padStart(2, "0");
+        doc.text(numStr, xStart, y + 2.5);
+
+        // Player Name
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(15, 23, 42);
+        
+        let pName = player.name.toUpperCase();
+        if (pName.length > 14) {
+          pName = pName.slice(0, 14) + "...";
+        }
+        doc.text(pName, xStart + 7, y + 2.5);
+
+        // Icon Badge (if any)
+        const nameWidth = doc.getTextWidth(pName);
+        if (player.icon_role && player.icon_role !== "none") {
+          const badgeX = xStart + 7 + nameWidth + 2;
+          doc.setFillColor(245, 158, 11); // Amber
+          doc.setDrawColor(15, 23, 42);
+          doc.setLineWidth(0.15);
+          doc.rect(badgeX, y - 0.8, 8, 3.5, "FD");
+
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("courier", "bold");
+          doc.setFontSize(5.5);
+          doc.text("ICON", badgeX + 4, y + 1.6, { align: "center" });
+        }
+
+        // Price Tag Box
+        const priceText = formatShortCurrency(player.sold_price || 0);
+        const priceWidth = 16;
+        const priceX = xStart + colWidth - priceWidth;
+
+        if (player.icon_role && player.icon_role !== "none") {
+          doc.setFillColor(236, 253, 245); // Emerald-50
+          doc.setDrawColor(16, 185, 129); // Emerald-500
+        } else {
+          doc.setFillColor(241, 245, 249); // Slate-100
+          doc.setDrawColor(15, 23, 42);
+        }
+
+        doc.setLineWidth(0.2);
+        doc.rect(priceX, y - 1, priceWidth, 4.2, "FD");
+
+        doc.setFont("courier", "bold");
+        doc.setFontSize(7.5);
+        if (player.icon_role && player.icon_role !== "none") {
+          doc.setTextColor(16, 185, 129);
+        } else {
+          doc.setTextColor(15, 23, 42);
+        }
+        doc.text(priceText, priceX + (priceWidth / 2), y + 2.1, { align: "center" });
+
+        y += 7.2;
       });
 
-      yPosition = doc.lastAutoTable.finalY + 15;
-    });
+      if (colIndex === 0) {
+        yLeft = y + 6;
+      } else {
+        yRight = y + 6;
+      }
+    };
 
-    // Footer
+    // Draw Column 1: Batters, All-Rounders
+    drawSection(0, "Batters", grouped.batsman);
+    drawSection(0, "All-Rounders", grouped["all-rounder"]);
+
+    // Draw Column 2: Bowlers, Wicket-Keepers, Others
+    drawSection(1, "Bowlers", grouped.bowler);
+    drawSection(1, "Wicket-Keepers", grouped["wicket-keeper"]);
+    drawSection(1, "Others", grouped.other);
+
+    // Draw Squad Value Profile Box
+    let profileY = Math.max(yLeft, yRight) + 6;
+    if (profileY < 235) {
+      profileY = 235; // Pin to bottom region if space allows
+    }
+
+    if (profileY + 22 > 275) {
+      doc.addPage();
+      drawPageBorders(doc);
+      profileY = 20;
+    }
+
+    // Profile Box frame
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(0.4);
+    // Draw dashed box
+    doc.setLineDashPattern([1.5, 1.5], 0);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(16, profileY, 178, 18, "FD");
+    doc.setLineDashPattern([], 0); // Reset
+
+    // Title for profile
+    doc.setFont("times", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("SQUAD VALUE PROFILE", 20, profileY + 5);
+
+    doc.setLineWidth(0.15);
+    doc.line(20, profileY + 6.5, 188, profileY + 6.5);
+
+    // Stats calculations
+    const spent = team.total_purse - team.remaining_purse;
+    const avgPrice = teamPlayers.length ? spent / teamPlayers.length : 0;
+    const spentPct = team.total_purse > 0 ? (spent / team.total_purse) * 100 : 0;
+
+    doc.setFont("courier", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    
+    // Column 1
+    doc.text(`AVG SOLD PRICE: ${formatShortCurrency(avgPrice)}`, 22, profileY + 12.5);
+    // Column 2
+    doc.text(`BUDGET UTILIZED: ${spentPct.toFixed(1)}%`, 82, profileY + 12.5);
+    // Column 3
+    doc.text(`ICON PLAYERS: ${iconCount} USED`, 142, profileY + 12.5);
+
+    // Apply double outlines and footers to all pages dynamically
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text(
-        `Generated on ${new Date().toLocaleDateString()} • Page ${i} of ${totalPages}`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: "center" }
-      );
+      
+      // Page frame (in case new page was added inside section)
+      drawPageBorders(doc);
+
+      // Page footer strip
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.35);
+      doc.line(11.5, pageHeight - 20, pageWidth - 11.5, pageHeight - 20);
+      
+      doc.setFont("courier", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      
+      doc.text("CRICKET AUCTION PRO • MATCHDAY RECORD SHEET", 15, pageHeight - 15);
+      doc.text(`PAGE ${i} OF ${totalPages}`, pageWidth - 15, pageHeight - 15, { align: "right" });
     }
 
     // Download
@@ -391,24 +680,31 @@ const TournamentTeams = () => {
           </button>
           <button
             onClick={() => setShowAddTeam(true)}
-            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">group_add</span>
-            Add Team
+            <span className="hidden md:inline">Add Team</span>
+          </button>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+            <span className="hidden md:inline">Bulk Import</span>
           </button>
           <Link
             to={`/tournament/${tournamentId}/players`}
-            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">people</span>
-            Players
+            <span className="hidden md:inline">Players</span>
           </Link>
           <Link
             to={`/tournament/${tournamentId}/live`}
-            className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+            className="flex items-center justify-center gap-2 h-10 px-3 md:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">live_tv</span>
-            Go Live
+            <span className="hidden md:inline">Go Live</span>
           </Link>
         </div>
       </header>
@@ -531,34 +827,204 @@ const TournamentTeams = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
-            {[
-              { key: "all", label: "All Teams" },
-              { key: "high-budget", label: "High Budget" },
-              { key: "low-budget", label: "Low Budget" },
-              { key: "full-squad", label: "Full Squad" },
-            ].map((f) => (
+          <div className="flex flex-wrap md:flex-nowrap gap-3 items-center w-full md:w-auto pb-2 md:pb-0">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {[
+                { key: "all", label: "All Teams" },
+                { key: "high-budget", label: "High Budget" },
+                { key: "low-budget", label: "Low Budget" },
+                { key: "full-squad", label: "Full Squad" },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  disabled={isQuickEdit}
+                  onClick={() => {
+                    setFilter(f.key);
+                    setSelectedSquad(null);
+                    setExpandedTeam(null);
+                  }}
+                  className={`whitespace-nowrap px-3 py-1.5 border-2 text-xs font-display font-bold uppercase tracking-wider shadow-[2px_2px_0px_var(--border-color)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)] disabled:opacity-40 disabled:cursor-not-allowed ${
+                    filter === f.key && !isQuickEdit
+                      ? "bg-primary text-white border-text-primary dark:border-text-secondary-dark"
+                      : "bg-background-light dark:bg-card-dark text-text-secondary dark:text-text-secondary-dark border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Layout Toggle */}
+            <div className="flex border-2 border-text-primary dark:border-text-secondary-dark shadow-[3px_3px_0px_var(--border-color)] overflow-hidden">
               <button
-                key={f.key}
-                onClick={() => {
-                  setFilter(f.key);
-                  setSelectedSquad(null);
-                  setExpandedTeam(null);
-                }}
-                className={`whitespace-nowrap px-4 py-2 border-2 text-xs font-display font-bold uppercase tracking-wider shadow-[2px_2px_0px_var(--border-color)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_var(--border-color)] ${
-                  filter === f.key
-                    ? "bg-primary text-white border-text-primary dark:border-text-secondary-dark"
-                    : "bg-background-light dark:bg-card-dark text-text-secondary dark:text-text-secondary-dark border-text-primary dark:border-text-secondary-dark hover:bg-background-tertiary"
+                onClick={() => setIsQuickEdit(false)}
+                className={`h-9 px-3 flex items-center gap-1 font-mono text-xs font-bold uppercase transition-colors ${
+                  !isQuickEdit
+                    ? "bg-primary text-white"
+                    : "bg-background-light dark:bg-card-dark text-text-secondary hover:bg-background-tertiary text-text-primary dark:text-slate-100"
                 }`}
               >
-                {f.label}
+                <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                Grid
               </button>
-            ))}
+              <button
+                onClick={() => setIsQuickEdit(true)}
+                className={`h-9 px-3 flex items-center gap-1 font-mono text-xs font-bold uppercase transition-colors border-l-2 border-text-primary dark:border-text-secondary-dark ${
+                  isQuickEdit
+                    ? "bg-primary text-white"
+                    : "bg-background-light dark:bg-card-dark text-text-secondary hover:bg-background-tertiary text-text-primary dark:text-slate-100"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">table_chart</span>
+                Spreadsheet
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* Team Cards Grid OR Full Squad View */}
-        {filter === "full-squad" ? (
+        {/* Team Cards Grid OR Spreadsheet View OR Full Squad View */}
+        {isQuickEdit ? (
+          /* Spreadsheet View */
+          <div className="overflow-x-auto border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark shadow-[3px_3px_0px_var(--border-color)]">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="border-b-2 border-text-primary dark:border-text-secondary-dark bg-background-secondary dark:bg-background-dark font-mono text-xs uppercase text-text-secondary">
+                  <th className="p-3 w-16">Logo</th>
+                  <th className="p-3 min-w-[200px]">Team Name</th>
+                  <th className="p-3 w-40">Short Name</th>
+                  <th className="p-3 w-44">Color</th>
+                  <th className="p-3 w-40">Budget (Total Purse)</th>
+                  <th className="p-3 w-32 text-right">Spent</th>
+                  <th className="p-3 w-36 text-right">Remaining</th>
+                  <th className="p-3 w-28 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-text-primary/10">
+                {filteredTeams.map((team) => {
+                  const draft = editedTeams[team.id] || team;
+                  const isModified = isTeamModified(team);
+                  const isSaving = savingInlineIds.has(team.id);
+                  const spent = team.total_purse - team.remaining_purse;
+                  
+                  return (
+                    <tr key={team.id} className="hover:bg-background-secondary/40 font-mono text-xs">
+                      {/* Logo Column */}
+                      <td className="p-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-text-primary dark:text-slate-100 font-bold text-xs border border-white/10 overflow-hidden"
+                          style={{ backgroundColor: draft.color }}
+                        >
+                          {team.logo_url ? (
+                            <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            draft.short_name
+                          )}
+                        </div>
+                      </td>
+                      
+                      {/* Name Column */}
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          value={draft.name}
+                          onChange={(e) => handleInlineChange(team.id, 'name', e.target.value)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-sans font-semibold text-sm outline-none"
+                        />
+                      </td>
+                      
+                      {/* Short Name Column */}
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          maxLength={4}
+                          value={draft.short_name}
+                          onChange={(e) => handleInlineChange(team.id, 'short_name', e.target.value)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-bold outline-none uppercase"
+                        />
+                      </td>
+                      
+                      {/* Color Column */}
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={draft.color}
+                            onChange={(e) => handleInlineChange(team.id, 'color', e.target.value)}
+                            className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+                          />
+                          <input
+                            type="text"
+                            value={draft.color}
+                            onChange={(e) => handleInlineChange(team.id, 'color', e.target.value)}
+                            className="w-20 h-9 px-1.5 bg-background-light dark:bg-background-dark border border-text-primary/20 text-[10px] text-text-primary dark:text-slate-100 font-mono outline-none"
+                          />
+                        </div>
+                      </td>
+                      
+                      {/* Total Purse Column */}
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          value={draft.total_purse}
+                          onChange={(e) => handleInlineChange(team.id, 'total_purse', parseInt(e.target.value, 10) || 0)}
+                          className="w-full h-9 px-2 bg-background-light dark:bg-background-dark border border-text-primary/20 focus:border-primary text-text-primary dark:text-slate-100 font-mono text-sm outline-none"
+                        />
+                      </td>
+                      
+                      {/* Spent Column */}
+                      <td className="p-3 text-right font-mono font-semibold text-text-secondary">
+                        {spent.toLocaleString()} pts
+                      </td>
+                      
+                      {/* Remaining Column */}
+                      <td className="p-3 text-right font-mono font-bold text-primary">
+                        {(draft.total_purse - spent).toLocaleString()} pts
+                      </td>
+                      
+                      {/* Actions Column */}
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center items-center gap-1.5">
+                          {isModified ? (
+                            <>
+                              <button
+                                onClick={() => handleSaveInline(team.id)}
+                                disabled={isSaving}
+                                className="flex items-center justify-center size-8 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors rounded"
+                                title="Save Changes"
+                              >
+                                {isSaving ? (
+                                  <div className="size-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <span className="material-symbols-outlined text-[18px]">check</span>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleResetInline(team.id)}
+                                disabled={isSaving}
+                                className="flex items-center justify-center size-8 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors rounded"
+                                title="Discard Changes"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(team)}
+                              className="flex items-center justify-center size-8 bg-red-500/10 text-red-400 border border-red-400/30 hover:bg-red-500/20 transition-colors rounded"
+                              title="Delete Team"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : filter === "full-squad" ? (
           /* Full Squad View - All Teams Grid */
           <section className="space-y-6">
             {selectedSquad ? (
@@ -1015,11 +1481,7 @@ const TournamentTeams = () => {
         )}
       </main>
 
-      {/* Trademark Footer */}
-      <div className="text-center py-4 text-text-secondary/50 text-xs border-t-2 border-text-primary dark:border-text-secondary-dark">
-        © {new Date().getFullYear()} Made by{" "}
-        <span className="text-primary">Nikhil</span>
-      </div>
+
 
       {/* Live Ticker */}
       {players.filter((p) => p.status === "sold").length > 0 && (
@@ -1057,9 +1519,35 @@ const TournamentTeams = () => {
             tournamentId={tournamentId}
             defaultPurse={tournament?.default_purse}
             onClose={() => setShowAddTeam(false)}
-            onSuccess={() => {
-              fetchTeams();
+            onSuccess={(newTeam) => {
+              if (newTeam) {
+                setTeams((prev) => [...prev, newTeam]);
+              } else {
+                fetchTeams();
+              }
               setShowAddTeam(false);
+            }}
+          />
+        </Modal>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowBulkImport(false)}
+          title="Bulk Import Teams"
+        >
+          <BulkImportTeams
+            tournamentId={tournamentId}
+            defaultPurse={tournament?.default_purse}
+            onClose={() => setShowBulkImport(false)}
+            onSuccess={(importedList) => {
+              if (Array.isArray(importedList)) {
+                setTeams((prev) => [...prev, ...importedList]);
+              } else {
+                fetchTeams();
+              }
             }}
           />
         </Modal>
@@ -1075,8 +1563,14 @@ const TournamentTeams = () => {
           <EditTeamForm
             team={editingTeam}
             onClose={() => setEditingTeam(null)}
-            onSuccess={() => {
-              fetchTeams();
+            onSuccess={(updatedTeam) => {
+              if (updatedTeam) {
+                setTeams((prev) =>
+                  prev.map((t) => (t.id === updatedTeam.id ? updatedTeam : t))
+                );
+              } else {
+                fetchTeams();
+              }
               setEditingTeam(null);
             }}
           />
@@ -1169,7 +1663,7 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
       const purseDiff = formData.total_purse - team.total_purse;
       const newRemainingPurse = team.remaining_purse + purseDiff;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("teams")
         .update({
           name: formData.name,
@@ -1179,12 +1673,13 @@ const EditTeamForm = ({ team, onClose, onSuccess }) => {
           total_purse: formData.total_purse,
           remaining_purse: Math.max(0, newRemainingPurse),
         })
-        .eq("id", team.id);
+        .eq("id", team.id)
+        .select();
 
       if (error) throw error;
 
       toast.success("Team updated successfully!");
-      onSuccess?.();
+      onSuccess?.(data && data[0]);
     } catch (error) {
       toast.error(error.message || "Failed to update team");
     } finally {

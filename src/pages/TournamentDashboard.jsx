@@ -292,31 +292,38 @@ const TournamentDashboard = () => {
                   {tournament?.description ||
                     "Add teams, players, and start your live auction."}
                 </p>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <Link
                     to={`/tournament/${tournamentId}/live`}
-                    className="flex items-center justify-center gap-2 h-10 px-6 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+                    className="flex items-center justify-center gap-2 h-10 px-4 sm:px-6 border-2 border-text-primary dark:border-text-secondary-dark bg-primary hover:bg-primary-dark text-white text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       play_arrow
                     </span>
-                    {auctionState?.is_live ? "View Live" : "Start Auction"}
+                    <span className="hidden sm:inline">
+                      {auctionState?.is_live ? "View Live" : "Start Auction"}
+                    </span>
+                    <span className="sm:hidden">
+                      {auctionState?.is_live ? "Live" : "Start"}
+                    </span>
                   </Link>
                   <button
                     type="button"
                     onClick={copyPublicLink}
-                    className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+                    className="flex items-center justify-center gap-2 h-10 px-3 sm:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       link
                     </span>
-                    Copy Live Link
+                    <span className="hidden sm:inline">Copy Live Link</span>
+                    <span className="sm:hidden">Copy Link</span>
                   </button>
                   <Link
                     to={`/tournament/${tournamentId}/teams`}
-                    className="flex items-center justify-center gap-2 h-10 px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
+                    className="flex items-center justify-center gap-2 h-10 px-3 sm:px-4 border-2 border-text-primary dark:border-text-secondary-dark bg-background-light dark:bg-card-dark hover:bg-background-tertiary text-text-primary dark:text-slate-100 text-sm font-display font-bold uppercase tracking-wider shadow-[3px_3px_0px_var(--border-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_var(--border-color)] transition-all"
                   >
-                    View Teams
+                    <span className="hidden sm:inline">View Teams</span>
+                    <span className="sm:hidden">Teams</span>
                   </Link>
                 </div>
               </div>
@@ -570,11 +577,7 @@ const TournamentDashboard = () => {
             </div>
           </div>
 
-          {/* Trademark Footer */}
-          <div className="text-center py-4 text-text-secondary/50 text-xs">
-            © {new Date().getFullYear()} Made by{" "}
-            <span className="text-primary">Nikhil</span>
-          </div>
+
         </div>
       </main>
 

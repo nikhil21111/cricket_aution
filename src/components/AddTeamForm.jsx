@@ -45,7 +45,7 @@ const AddTeamForm = ({
         logo_url = await uploadImage("logos", logoFile);
       }
 
-      const { error } = await supabase.from("teams").insert({
+      const { data, error } = await supabase.from("teams").insert({
         name: formData.name,
         short_name: formData.short_name.toUpperCase(),
         color: formData.color,
@@ -53,12 +53,12 @@ const AddTeamForm = ({
         total_purse: formData.total_purse,
         remaining_purse: formData.total_purse,
         tournament_id: tournamentId,
-      });
+      }).select();
 
       if (error) throw error;
 
       toast.success("Team added successfully!");
-      onSuccess?.();
+      onSuccess?.(data && data[0]);
       onClose();
     } catch (error) {
       toast.error(error.message || "Failed to add team");

@@ -42,6 +42,18 @@ const TournamentLive = () => {
   const [consoleHeight, setConsoleHeight] = useState(78);
   const consoleRef = useRef(null);
 
+  const latestBidRef = useRef(0);
+  const latestBidderRef = useRef(null);
+  const latestHistoryRef = useRef([]);
+  const bidQueueRef = useRef([]);
+  const isBidWritingRef = useRef(false);
+
+  useEffect(() => {
+    latestBidRef.current = highestBid;
+    latestBidderRef.current = highestBidder;
+    latestHistoryRef.current = bidHistory;
+  }, [highestBid, highestBidder, bidHistory]);
+
   useEffect(() => {
     const measure = () => {
       if (consoleRef.current) {
@@ -183,6 +195,7 @@ const TournamentLive = () => {
   const [unsoldRoundStarted, setUnsoldRoundStarted] = useState(
     getUnsoldRoundStarted
   );
+  const [showUnsoldPool, setShowUnsoldPool] = useState(false);
 
   const markUnsoldRoundStarted = () => {
     setUnsoldRoundStarted(true);
@@ -506,6 +519,7 @@ const TournamentLive = () => {
           current_player_id: null,
           highest_bid: 0,
           highest_bidder_id: null,
+          bid_history: null,
         })
         .eq("tournament_id", tournamentId);
 
@@ -715,20 +729,50 @@ const TournamentLive = () => {
   // Set current player from auction state
   useEffect(() => {
     if (auctionState?.current_player_id) {
+      const newBid = auctionState.highest_bid || 0;
+      
+      // Ignore incoming updates if they are outdated relative to our local optimistic updates
+      if (auctionState.current_player_id === currentPlayer?.id && newBid < latestBidRef.current) {
+        return;
+      }
+
       const player = players.find(
         (p) => p.id === auctionState.current_player_id
       );
       setCurrentPlayer(player || null);
       
-      const newBid = auctionState.highest_bid || 0;
       const newBidderId = auctionState.highest_bidder_id;
       const team = teams.find((t) => t.id === newBidderId);
       
       setHighestBid(newBid);
       setHighestBidder(team || null);
 
-      if (newBid > 0 && team) {
-        // Only add if it's not already the latest bid in history to avoid duplication
+      // Deserialize and map bid_history if present
+      let parsedHistory = [];
+      if (auctionState.bid_history) {
+        try {
+          const rawHistory = typeof auctionState.bid_history === "string"
+            ? JSON.parse(auctionState.bid_history)
+            : auctionState.bid_history;
+          if (Array.isArray(rawHistory)) {
+            parsedHistory = rawHistory.map((item) => {
+              const teamId = item.teamId || item.team?.id;
+              const fullTeam = teams.find((t) => t.id === teamId);
+              return {
+                ...item,
+                team: fullTeam || item.team,
+              };
+            });
+          }
+        } catch (e) {
+          console.error("Error parsing bid_history:", e);
+        }
+      }
+
+      if (parsedHistory.length > 0) {
+        setBidHistory(parsedHistory);
+      } else if (newBid > 0 && team) {
+        // Fallback to local state if bid_history is empty/null but we have a highest bid
         setBidHistory((prev) => {
           if (prev.length > 0 && prev[0].amount === newBid && prev[0].team?.id === team.id) {
             return prev;
@@ -742,6 +786,8 @@ const TournamentLive = () => {
             ...prev.slice(0, 9),
           ];
         });
+      } else {
+        setBidHistory([]);
       }
     } else {
       setCurrentPlayer(null);
@@ -749,10 +795,15 @@ const TournamentLive = () => {
       setHighestBidder(null);
       setBidHistory([]);
     }
-  }, [auctionState, players, teams]);
+  }, [auctionState, players, teams, currentPlayer]);
 
-  // Select a player for auction
   const selectPlayer = async (player) => {
+    // Optimistic Update: Set local state immediately for instant feedback
+    setCurrentPlayer(player);
+    setHighestBid(0); // First bid will be base_price
+    setHighestBidder(null);
+    setBidHistory([]);
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -762,26 +813,65 @@ const TournamentLive = () => {
           highest_bid: 0, // Start at 0, first bid will be base_price
           highest_bidder_id: null,
           is_live: true,
+          bid_history: null,
         })
         .eq("tournament_id", tournamentId);
 
       if (error) throw error;
 
-      // Update tournament status to live
-      await supabase
-        .from("tournaments")
-        .update({ status: "live" })
-        .eq("id", tournamentId);
-
-      setCurrentPlayer(player);
-      setHighestBid(0); // First bid will be base_price
-      setHighestBidder(null);
-      setBidHistory([]);
-      toast.success(`${player.name} is now up for auction!`);
+      // Update tournament status to live if not already live
+      if (tournament?.status !== "live") {
+        await supabase
+          .from("tournaments")
+          .update({ status: "live" })
+          .eq("id", tournamentId);
+        setTournament(prev => prev ? { ...prev, status: "live" } : null);
+      }
     } catch (error) {
-      toast.error("Failed to select player");
+      console.error(error);
+      toast.error("Failed to sync selection with database");
+      // Pull latest state on failure to ensure UI matches DB
+      fetchAuctionState();
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Process the database write queue for bidding
+  const processBidQueue = async () => {
+    if (isBidWritingRef.current) return;
+    if (bidQueueRef.current.length === 0) return;
+
+    isBidWritingRef.current = true;
+    try {
+      const tasks = bidQueueRef.current;
+      bidQueueRef.current = [];
+
+      // We only execute the latest task to get the correct state written
+      const latestTask = tasks[tasks.length - 1];
+      const { newBid, teamId, nextHistory } = latestTask;
+
+      const { error } = await supabase
+        .from("auction_state")
+        .update({
+          highest_bid: newBid,
+          highest_bidder_id: teamId,
+          bid_history: JSON.stringify(nextHistory),
+        })
+        .eq("tournament_id", tournamentId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Failed to sync bid with database:", error);
+      toast.error("Failed to place bid");
+      // Pull latest state on failure to ensure UI matches DB
+      fetchAuctionState();
+    } finally {
+      isBidWritingRef.current = false;
+      // If new tasks were queued while writing, process them
+      if (bidQueueRef.current.length > 0) {
+        processBidQueue();
+      }
     }
   };
 
@@ -793,52 +883,60 @@ const TournamentLive = () => {
     }
 
     // First bid is base price, subsequent bids add increment
-    const isFirstBid = highestBidder === null;
+    const isFirstBid = latestBidderRef.current === null;
     const newBid = isFirstBid
       ? currentPlayer.base_price
-      : highestBid + bidIncrement;
+      : latestBidRef.current + bidIncrement;
 
     if (newBid > team.remaining_purse) {
       toast.error(`${team.short_name} doesn't have enough purse!`);
       return;
     }
 
-    if (highestBidder?.id === team.id) {
+    if (latestBidderRef.current?.id === team.id) {
       toast.error(`${team.short_name} is already the highest bidder!`);
       return;
     }
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("auction_state")
-        .update({
-          highest_bid: newBid,
-          highest_bidder_id: team.id,
-        })
-        .eq("tournament_id", tournamentId);
+    const nextHistory = [
+      {
+        teamId: team.id,
+        amount: newBid,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...latestHistoryRef.current.map(item => ({
+        teamId: item.teamId || item.team?.id,
+        amount: item.amount,
+        time: item.time,
+      })).slice(0, 9),
+    ];
 
-      if (error) throw error;
+    // Update refs immediately so fast clicks read the correct optimistic values
+    latestBidRef.current = newBid;
+    latestBidderRef.current = team;
+    latestHistoryRef.current = [
+      {
+        team,
+        amount: newBid,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...latestHistoryRef.current.slice(0, 9),
+    ];
 
-      setBidHistory((prev) => [
-        {
-          team,
-          amount: newBid,
-          time: new Date().toLocaleTimeString(),
-        },
-        ...prev.slice(0, 9),
-      ]);
+    // Optimistically update React state immediately for snappy UI
+    setBidHistory(latestHistoryRef.current);
+    setHighestBid(newBid);
+    setHighestBidder(team);
 
-      setHighestBid(newBid);
-      setHighestBidder(team);
-      toast.success(`${team.short_name} bids ${formatShortCurrency(newBid)}!`, {
-        id: `bid-${newBid}-${team.id}`,
-      });
-    } catch (error) {
-      toast.error("Failed to place bid");
-    } finally {
-      setLoading(false);
-    }
+    // Queue the database write
+    bidQueueRef.current.push({
+      newBid,
+      teamId: team.id,
+      nextHistory,
+    });
+
+    // Start processing
+    processBidQueue();
   };
 
   // Mark player as SOLD
@@ -922,6 +1020,7 @@ const TournamentLive = () => {
           current_player_id: null,
           highest_bid: 0,
           highest_bidder_id: null,
+          bid_history: null,
         })
         .eq("tournament_id", tournamentId);
 
@@ -930,17 +1029,6 @@ const TournamentLive = () => {
         team: soldToTeam.short_name,
         amount: soldPrice,
       });
-
-      toast.success(
-        `${soldPlayerName} SOLD to ${soldToTeam.name} for ${formatShortCurrency(
-          soldPrice
-        )}!`,
-        {
-          id: `sold-${soldPlayerId}`,
-          icon: "🎉",
-          duration: 4000,
-        }
-      );
     } catch (error) {
       // Revert local state on error
       fetchPlayers();
@@ -993,15 +1081,11 @@ const TournamentLive = () => {
           current_player_id: null,
           highest_bid: 0,
           highest_bidder_id: null,
+          bid_history: null,
         })
         .eq("tournament_id", tournamentId);
 
       triggerCelebration("unsold", { player: unsoldPlayerName });
-
-      toast(`${unsoldPlayerName} goes UNSOLD`, {
-        id: `unsold-${unsoldPlayerId}`,
-        icon: "😔",
-      });
     } catch (error) {
       // Revert local state on error
       fetchPlayers();
@@ -1266,7 +1350,7 @@ const TournamentLive = () => {
 
   // Bento stats calculations
   const soldPlayers = players.filter((p) => p.status === "sold");
-  const unsoldPlayersList = players.filter((p) => p.status === "unsold");
+  const unsoldPlayersList = sortByCategoryOrder(players.filter((p) => p.status === "unsold"));
   const totalSoldValue = soldPlayers.reduce((sum, p) => sum + (p.sold_price || 0), 0);
   const soldPlayersCount = soldPlayers.length;
   
@@ -1294,7 +1378,7 @@ const TournamentLive = () => {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+    <div className="bg-background-light dark:bg-background-dark text-text-primary dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden live-auction-container">
       {/* Sold Celebration - Fireworks + Card */}
       {celebration?.type === "sold" && (
         <>
@@ -1484,6 +1568,15 @@ const TournamentLive = () => {
         *, *::before, *::after {
           box-sizing: border-box;
           transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        @media(min-width: 861px) {
+          .live-auction-container {
+            height: 100vh !important;
+            min-height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+          }
         }
 
         /* HEADER & TICKER */
@@ -1683,29 +1776,155 @@ const TournamentLive = () => {
         .ctrl-btn:active {
           transform: translate(1px,1px);
         }
-        .bid-clock {
+        .unsold-pool-container {
+          position: relative;
+        }
+        .unsold-pool-btn {
           display: flex;
           align-items: center;
+          gap: 6px;
           border: 2px solid var(--bg-primary);
           box-shadow: 3px 3px 0 var(--bg-primary);
-          flex-shrink: 0;
-        }
-        .clock-lbl {
+          background-color: var(--accent-amber);
+          color: #000;
           font-family: var(--font-display);
-          font-size: 0.62rem;
+          font-size: 0.75rem;
           font-weight: 800;
           text-transform: uppercase;
-          padding: 0.35rem 0.5rem;
-          border-right: 2px solid var(--bg-primary);
-          background: var(--accent-amber);
-          color: #000;
+          padding: 0.35rem 0.65rem;
+          cursor: pointer;
+          transition: all 0.1s ease;
         }
-        .clock-val {
-          font-family: var(--font-mono);
-          font-size: 1rem;
+        .unsold-pool-btn:active {
+          transform: translate(1px, 1px);
+          box-shadow: 2px 2px 0 var(--bg-primary);
+        }
+        .unsold-pool-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          width: 320px;
+          background-color: var(--bg-secondary, #f8fafc);
+          border: 2px solid var(--bg-primary);
+          box-shadow: 4px 4px 0 var(--bg-primary);
+          z-index: 150;
+          display: flex;
+          flex-direction: column;
+        }
+        .dark .unsold-pool-dropdown {
+          background-color: var(--card-dark, #1e293b);
+          border-color: var(--border-color, #f8fafc);
+          box-shadow: 4px 4px 0 var(--border-color, #f8fafc);
+        }
+        .dropdown-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 2px solid var(--bg-primary);
+          font-family: var(--font-display);
+          font-size: 0.75rem;
+          font-weight: 800;
+          background-color: var(--bg-tertiary, #f1f5f9);
+          color: var(--text-primary);
+        }
+        .dark .dropdown-header {
+          border-color: var(--border-color, #f8fafc);
+          background-color: var(--bg-secondary, #1e293b);
+        }
+        .dropdown-header .close-btn {
+          font-size: 1.1rem;
+          font-weight: 800;
+          cursor: pointer;
+          line-height: 1;
+        }
+        .dropdown-list {
+          max-height: 240px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+        }
+        .dropdown-list .player-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px solid var(--bg-tertiary, #f1f5f9);
+        }
+        .dark .dropdown-list .player-row {
+          border-bottom-color: var(--bg-secondary, #1e293b);
+        }
+        .dropdown-list .player-row:last-child {
+          border-bottom: none;
+        }
+        .player-row .player-info {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          text-align: left;
+        }
+        .player-row .player-name {
+          font-family: var(--font-display);
+          font-size: 0.85rem;
           font-weight: 700;
-          padding: 0.25rem 0.65rem;
-          color: var(--bg-primary);
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .player-row .player-meta {
+          font-family: var(--font-mono);
+          font-size: 0.65rem;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+        }
+        .player-row .bring-back-btn {
+          border: 1px solid var(--bg-primary);
+          background-color: var(--bg-primary, #ffffff);
+          color: var(--text-primary);
+          font-family: var(--font-display);
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.15rem 0.4rem;
+          cursor: pointer;
+        }
+        .dark .player-row .bring-back-btn {
+          border-color: var(--border-color, #f8fafc);
+          background-color: var(--card-dark, #1e293b);
+        }
+        .player-row .bring-back-btn:hover {
+          background-color: var(--accent-cobalt, #2563eb);
+          color: #fff;
+          border-color: var(--accent-cobalt, #2563eb);
+        }
+        .dropdown-actions {
+          padding: 10px 12px;
+          border-top: 2px solid var(--bg-primary);
+          background-color: var(--bg-tertiary, #f1f5f9);
+        }
+        .dark .dropdown-actions {
+          border-color: var(--border-color, #f8fafc);
+          background-color: var(--bg-secondary, #1e293b);
+        }
+        .dropdown-actions .recall-all-btn {
+          width: 100%;
+          border: 2px solid var(--bg-primary);
+          box-shadow: 2px 2px 0 var(--bg-primary);
+          background-color: var(--accent-crimson, #e11d48);
+          color: #ffffff;
+          font-family: var(--font-display);
+          font-size: 0.75rem;
+          font-weight: 800;
+          padding: 0.35rem 0.5rem;
+          cursor: pointer;
+        }
+        .dark .dropdown-actions .recall-all-btn {
+          border-color: var(--border-color, #f8fafc);
+          box-shadow: 2px 2px 0 var(--border-color, #f8fafc);
+        }
+        .dropdown-actions .recall-all-btn:active {
+          transform: translate(1px, 1px);
+          box-shadow: 1px 1px 0 var(--bg-primary);
         }
         .theme-btn {
           background: transparent;
@@ -2256,6 +2475,8 @@ const TournamentLive = () => {
           cursor: pointer;
           position: relative;
           gap: 0.05rem;
+          height: 64px;
+          overflow: hidden;
         }
         .team-btn:last-child { border-right: none; }
         .team-btn:hover { background: var(--bg-tertiary); }
@@ -2285,6 +2506,21 @@ const TournamentLive = () => {
           font-weight: 800;
           text-transform: uppercase;
           line-height: 1;
+        }
+        .t-overlay-short {
+          position: relative;
+          z-index: 10;
+          width: 100%;
+          background: rgba(241, 245, 249, 0.88); /* Lightweight light gray background */
+          color: #0f172a; /* High priority dark text */
+          font-family: var(--font-display);
+          font-size: 0.68rem;
+          font-weight: 900;
+          padding: 0.1rem 0;
+          text-align: center;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          border-top: 1px solid rgba(15, 23, 42, 0.15);
         }
         .t-purse {
           font-family: var(--font-mono);
@@ -2350,6 +2586,34 @@ const TournamentLive = () => {
           grid-row: 2;
           grid-column: 2;
           border-bottom: none !important;
+        }
+        @media(min-width: 1800px) {
+          .header-title { font-size: 2rem !important; }
+          .role-tag { font-size: 1.1rem !important; padding: 0.5rem 1rem !important; }
+          .player-name { font-size: 3.5rem !important; }
+          .bb-lbl { font-size: 1rem !important; }
+          .bb-val { font-size: 4.5rem !important; }
+          .bb-unit { font-size: 1.8rem !important; }
+          .bb-sub-lbl { font-size: 0.9rem !important; }
+          .bb-sub-val { font-size: 1.7rem !important; }
+          .team-btn { height: 96px !important; }
+          .t-short { font-size: 1.2rem !important; }
+          .t-overlay-short { font-size: 0.95rem !important; padding: 0.2rem 0 !important; }
+          .t-purse { font-size: 0.9rem !important; }
+          .ticker-title { font-size: 0.9rem !important; }
+          .ticker-item { font-size: 1.05rem !important; }
+          .ticker-clock-box { font-size: 1.15rem !important; }
+          .ctrl-btn { font-size: 1.2rem !important; height: 3.5rem !important; }
+          .act-btn { font-size: 0.95rem !important; }
+          .act-btn.sold { font-size: 1.3rem !important; }
+          .act-btn.unsold { font-size: 1rem !important; }
+          .act-btn.next { font-size: 1.7rem !important; }
+          .player-inner { gap: 2rem !important; padding: 2rem !important; }
+          .player-img-col { width: 280px !important; min-width: 280px !important; height: 280px !important; }
+          .stat-box { padding: 1rem !important; }
+          .stat-val { font-size: 2.2rem !important; }
+          .stat-lbl { font-size: 0.95rem !important; }
+          .stat-sub { font-size: 0.8rem !important; }
         }
         @media(max-width:860px) {
           .grid2 { grid-template-columns: 1fr; }
@@ -2438,9 +2702,80 @@ const TournamentLive = () => {
               <button onClick={endAuction} className="ctrl-btn end">⏹ END</button>
             )}
 
-            <div className="bid-clock">
-              <div className="clock-lbl">BID CLOCK</div>
-              <div className="clock-val">{bidClockVal === 0 ? "TIME!" : `${bidClockVal}s`}</div>
+            <div className="unsold-pool-container">
+              <button 
+                onClick={() => setShowUnsoldPool(!showUnsoldPool)}
+                className="unsold-pool-btn"
+              >
+                <span className="material-symbols-outlined text-[14px]">replay</span>
+                <span>Unsold Pool ({unsoldPlayersList.length})</span>
+              </button>
+              
+              {showUnsoldPool && (
+                <div className="unsold-pool-dropdown">
+                  <div className="dropdown-header">
+                    <span>UNSOLD PLAYERS</span>
+                    <button onClick={() => setShowUnsoldPool(false)} className="close-btn">×</button>
+                  </div>
+                  
+                  {unsoldPlayersList.length === 0 ? (
+                    <div className="p-4 text-xs font-mono text-center text-slate-500">
+                      No unsold players currently
+                    </div>
+                  ) : (
+                    <>
+                      <div className="dropdown-list">
+                        {unsoldPlayersList.map((player) => (
+                          <div key={player.id} className="player-row">
+                            <div className="player-info">
+                              <span className="player-name">{player.name}</span>
+                              <span className="player-meta">
+                                {player.role?.replace('-', ' ')} | Base: {formatShortCurrency(player.base_price)}
+                              </span>
+                            </div>
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  // Update status in DB back to available
+                                  const { error } = await supabase
+                                    .from("players")
+                                    .update({ status: "available" })
+                                    .eq("id", player.id);
+                                  if (error) throw error;
+                                  
+                                  // Update local state
+                                  const updatedPlayer = { ...player, status: "available" };
+                                  setPlayers(prev => prev.map(p => p.id === player.id ? updatedPlayer : p));
+                                  
+                                  // Select this specific player to bring back
+                                  await selectPlayer(updatedPlayer);
+                                  setShowUnsoldPool(false);
+                                } catch (e) {
+                                  toast.error("Failed to bring back player");
+                                }
+                              }}
+                              className="bring-back-btn"
+                            >
+                              RECALL
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="dropdown-actions">
+                        <button 
+                          onClick={async () => {
+                            await startUnsoldRound();
+                            setShowUnsoldPool(false);
+                          }}
+                          className="recall-all-btn"
+                        >
+                          RECALL ALL PLAYERS
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <button onClick={toggleTheme} className="theme-btn">
@@ -2994,6 +3329,13 @@ const TournamentLive = () => {
                       disabled={!currentPlayer || isHighestBidder || !canAfford || loading}
                       className={`team-btn ${isHighestBidder ? "highest" : ""} ${!canAfford && !isHighestBidder ? "broke" : ""}`}
                       title={`${team.name} — ${formatIPLMoneyTeam(team.remaining_purse)}`}
+                      style={{
+                        backgroundImage: team.logo_url ? `url("${team.logo_url}")` : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
+                        padding: 0,
+                      }}
                       onClick={() =>
                         currentPlayer &&
                         canAfford &&
@@ -3004,10 +3346,17 @@ const TournamentLive = () => {
                       {isHighestBidder && <span className="t-top">HIGHEST</span>}
                       <div
                         className="t-stripe"
-                        style={{ backgroundColor: team.color || "#0db9f2" }}
+                        style={{ backgroundColor: team.color || "#0db9f2", zIndex: 12 }}
                       ></div>
-                      <div className="t-short">{team.short_name}</div>
-                      <div className="t-purse">{formatIPLMoneyTeam(team.remaining_purse)}</div>
+                      <div className="w-full h-full flex flex-col justify-end">
+                        {!team.logo_url ? (
+                          <div className="t-short my-auto">{team.short_name}</div>
+                        ) : (
+                          <div className="t-overlay-short">
+                            {team.short_name}
+                          </div>
+                        )}
+                      </div>
                     </button>
                   );
                 } else {
