@@ -2,6 +2,7 @@
   "name": "cricket-auction",
   "private": true,
   "version": "1.0.0",
+  "homepage": "https://aution-cric.netlify.app/",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,5 +1,7 @@
 # 🏏 Cricket Auction Pro
 
+**Live Demo**: [https://aution-cric.netlify.app/](https://aution-cric.netlify.app/)
+
 A real-time cricket player auction platform built with React and Supabase. Manage tournaments, teams, and conduct live auctions with real-time bidding updates and celebration animations.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
