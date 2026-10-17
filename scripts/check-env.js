@@ -40,13 +40,15 @@ for (const envVar of requiredEnvVars) {
 }
 
 if (missing.length > 0) {
-  console.warn("\n⚠️  Warning: Missing environment variables:");
-  missing.forEach((v) => console.warn(`   - ${v}`));
-  console.warn(
-    "\nMake sure to set these in your deployment platform (Netlify/Vercel).\n"
+  console.error("\n❌ BUILD FAILED — missing required environment variables:");
+  missing.forEach((v) => console.error(`   - ${v}`));
+  console.error(
+    "\nA production build without these variables would silently run in" +
+      "\nMOCK MODE (fake localStorage database, mock user). That must never" +
+      "\ngo live. Fix: set them in .env.local locally, or in your hosting" +
+      "\nplatform's environment variables (Netlify/GitHub Actions secrets).\n"
   );
-  // Don't exit with error - let the build continue
-  // The app will show an error message if env vars are missing at runtime
+  process.exit(1);
 }
 
 console.log("✅ Environment check completed");
