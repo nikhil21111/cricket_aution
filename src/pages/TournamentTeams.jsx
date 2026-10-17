@@ -8,7 +8,6 @@ import AddTeamForm from "../components/AddTeamForm";
 import BulkImportTeams from "../components/BulkImportTeams";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const TournamentTeams = () => {
   const { id: tournamentId } = useParams();
@@ -119,8 +118,47 @@ const TournamentTeams = () => {
   useEffect(() => {
     if (tournamentId) {
       fetchData();
+      const cleanup = setupSubscriptions();
+      return cleanup;
     }
   }, [tournamentId]);
+
+  const setupSubscriptions = () => {
+    // Live updates — the Team Summary used to go stale during a live
+    // auction (purses/squads changed without a manual refresh).
+    const teamsSub = supabase
+      .channel(`teams-summary-${tournamentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "teams",
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        fetchTeams
+      )
+      .subscribe();
+
+    const playersSub = supabase
+      .channel(`players-summary-${tournamentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "players",
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        fetchPlayers
+      )
+      .subscribe();
+
+    return () => {
+      teamsSub.unsubscribe();
+      playersSub.unsubscribe();
+    };
+  };
 
   useEffect(() => {
     // Keep tournaments.teams_count / players_count in sync from this page
