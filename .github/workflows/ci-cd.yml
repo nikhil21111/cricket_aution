@@ -18,7 +18,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # vitest 4 + jsdom 27 require Node >= 20.19 / >= 22.12 (they use
+          # require(esm), which Node 18 cannot load)
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
