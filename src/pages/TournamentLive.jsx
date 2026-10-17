@@ -430,6 +430,23 @@ const TournamentLive = () => {
     );
   };
 
+  // Skip the celebration overlay early — the organizer should not have to
+  // wait out the full 5s/3.2s animation before moving on. This was the main
+  // cause of the "next player panel takes too long" delay.
+  const dismissCelebration = () => {
+    if (celebrationTimeoutRef.current) {
+      clearTimeout(celebrationTimeoutRef.current);
+      celebrationTimeoutRef.current = null;
+    }
+    setCelebration(null);
+    setCelebrationPlayer(null);
+  };
+
+  const dismissCelebrationAndGoNext = () => {
+    dismissCelebration();
+    nextPlayer();
+  };
+
   // Get current category being auctioned (first category with available players)
   const currentCategory = categoryOrder.find((cat) =>
     availablePlayers.some((p) => getPlayerCategoryId(p) === cat.id)
@@ -529,6 +546,16 @@ const TournamentLive = () => {
         .eq("id", tournamentId);
 
       setAuctionStatus("ended");
+      // Clear persisted auction flow flags so a future re-run of this
+      // tournament starts fresh instead of resuming stale localStorage state.
+      setAuctionStarted(false);
+      setUnsoldRoundStarted(false);
+      try {
+        localStorage.removeItem(`auction_started_${tournamentId}`);
+        localStorage.removeItem(`unsold_round_${tournamentId}`);
+      } catch (e) {
+        console.error("Failed to clear auction flags:", e);
+      }
       toast.success("Auction ended successfully!");
     } catch (error) {
       toast.error("Failed to end auction");
@@ -739,7 +766,16 @@ const TournamentLive = () => {
       const player = players.find(
         (p) => p.id === auctionState.current_player_id
       );
-      setCurrentPlayer(player || null);
+
+      // Ignore stale broadcasts for a player that has already been sold or
+      // marked unsold but whose auction_state clear write is still in flight.
+      // Without this, the just-sold player's card flashes back into the panel
+      // when the players refetch lands before the auction_state refetch.
+      if (!player || player.status !== "available") {
+        return;
+      }
+
+      setCurrentPlayer(player);
       
       const newBidderId = auctionState.highest_bidder_id;
       const team = teams.find((t) => t.id === newBidderId);
@@ -798,6 +834,13 @@ const TournamentLive = () => {
   }, [auctionState, players, teams, currentPlayer]);
 
   const selectPlayer = async (player) => {
+    // Guard: never restart bidding on a completed tournament — this is what
+    // left a completed tournament flagged is_live=true in production.
+    if (tournament?.status === "completed") {
+      toast.error("This auction has ended. Create a new tournament to run another auction.");
+      return;
+    }
+
     // Optimistic Update: Set local state immediately for instant feedback
     setCurrentPlayer(player);
     setHighestBid(0); // First bid will be base_price
@@ -997,32 +1040,39 @@ const TournamentLive = () => {
       setHighestBidder(null);
       setBidHistory([]);
 
-      await supabase
-        .from("players")
-        .update({
-          status: "sold",
-          sold_price: soldPrice,
-          team_id: soldToTeam.id,
-        })
-        .eq("id", soldPlayerId);
+      // Run all three writes in parallel — they touch different tables and
+      // the UI is already optimistic, so this cuts the sold transition from
+      // three sequential round-trips down to one.
+      const [playersRes, teamsRes, stateRes] = await Promise.all([
+        supabase
+          .from("players")
+          .update({
+            status: "sold",
+            sold_price: soldPrice,
+            team_id: soldToTeam.id,
+          })
+          .eq("id", soldPlayerId),
+        supabase
+          .from("teams")
+          .update({
+            remaining_purse: newRemainingPurse,
+            icon_player_count: newIconCount,
+          })
+          .eq("id", soldToTeam.id),
+        supabase
+          .from("auction_state")
+          .update({
+            current_player_id: null,
+            highest_bid: 0,
+            highest_bidder_id: null,
+            bid_history: null,
+          })
+          .eq("tournament_id", tournamentId),
+      ]);
 
-      await supabase
-        .from("teams")
-        .update({
-          remaining_purse: newRemainingPurse,
-          icon_player_count: newIconCount,
-        })
-        .eq("id", soldToTeam.id);
-
-      await supabase
-        .from("auction_state")
-        .update({
-          current_player_id: null,
-          highest_bid: 0,
-          highest_bidder_id: null,
-          bid_history: null,
-        })
-        .eq("tournament_id", tournamentId);
+      if (playersRes.error) throw playersRes.error;
+      if (teamsRes.error) throw teamsRes.error;
+      if (stateRes.error) throw stateRes.error;
 
       triggerCelebration("sold", {
         player: soldPlayerName,
@@ -1030,9 +1080,11 @@ const TournamentLive = () => {
         amount: soldPrice,
       });
     } catch (error) {
-      // Revert local state on error
+      // Revert local state on error — refetch every dataset this operation
+      // touched so the UI matches the database again.
       fetchPlayers();
       fetchTeams();
+      fetchAuctionState();
       toast.error("Failed to mark as sold");
     } finally {
       setLoading(false);
@@ -1070,25 +1122,30 @@ const TournamentLive = () => {
       setHighestBidder(null);
       setBidHistory([]);
 
-      await supabase
-        .from("players")
-        .update({ status: "unsold" })
-        .eq("id", unsoldPlayerId);
+      const [playersRes, stateRes] = await Promise.all([
+        supabase
+          .from("players")
+          .update({ status: "unsold" })
+          .eq("id", unsoldPlayerId),
+        supabase
+          .from("auction_state")
+          .update({
+            current_player_id: null,
+            highest_bid: 0,
+            highest_bidder_id: null,
+            bid_history: null,
+          })
+          .eq("tournament_id", tournamentId),
+      ]);
 
-      await supabase
-        .from("auction_state")
-        .update({
-          current_player_id: null,
-          highest_bid: 0,
-          highest_bidder_id: null,
-          bid_history: null,
-        })
-        .eq("tournament_id", tournamentId);
+      if (playersRes.error) throw playersRes.error;
+      if (stateRes.error) throw stateRes.error;
 
       triggerCelebration("unsold", { player: unsoldPlayerName });
     } catch (error) {
       // Revert local state on error
       fetchPlayers();
+      fetchAuctionState();
       toast.error("Failed to mark as unsold");
     } finally {
       setLoading(false);
@@ -1446,6 +1503,24 @@ const TournamentLive = () => {
               <div className="sold-card-price">
                 {formatIPLMoneyBid(celebrationPlayer?.amount || 0)}
               </div>
+              <div className="sold-card-actions">
+                <button
+                  type="button"
+                  onClick={dismissCelebrationAndGoNext}
+                  disabled={loading}
+                  className="sold-card-action-btn sold-card-action-btn--primary"
+                >
+                  <span className="material-symbols-outlined">skip_next</span>
+                  Next Player
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissCelebration}
+                  className="sold-card-action-btn sold-card-action-btn--ghost"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </>
@@ -1525,6 +1600,24 @@ const TournamentLive = () => {
                 {formatIPLMoneyBid(
                   celebrationPlayer?.player?.base_price || 0
                 )}
+              </div>
+              <div className="sold-card-actions">
+                <button
+                  type="button"
+                  onClick={dismissCelebrationAndGoNext}
+                  disabled={loading}
+                  className="sold-card-action-btn sold-card-action-btn--primary unsold"
+                >
+                  <span className="material-symbols-outlined">skip_next</span>
+                  Next Player
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissCelebration}
+                  className="sold-card-action-btn sold-card-action-btn--ghost"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
@@ -2392,6 +2485,18 @@ const TournamentLive = () => {
           font-size: 0.55rem;
           color: var(--accent-amber);
           font-weight: 700;
+        }
+        .clock-expired {
+          font-family: var(--font-mono);
+          font-size: 0.55rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #000;
+          background: var(--accent-amber);
+          border: 1px solid var(--border-color);
+          padding: 0.08rem 0.35rem;
+          width: fit-content;
+          animation: blink 1.2s infinite;
         }
         .inc-row {
           display: flex;
@@ -3261,6 +3366,13 @@ const TournamentLive = () => {
               <span className="console-sub">
                 Next: <strong>{formatCurrency(nextBidAmount)}</strong>
               </span>
+              {currentPlayer &&
+                bidClockVal === 0 &&
+                auctionStatus === "live" && (
+                  <span className="clock-expired">
+                    ⏰ TIME'S UP — MARK SOLD OR UNSOLD
+                  </span>
+                )}
             </div>
             <div className="inc-row">
               <span className="inc-label">INC:</span>

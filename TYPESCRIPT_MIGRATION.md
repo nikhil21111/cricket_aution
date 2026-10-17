@@ -24,10 +24,6 @@ Convert the Cricket Auction Pro codebase from JavaScript to TypeScript for impro
 - [ ] `src/lib/supabase.js` → `src/lib/supabase.ts`
   - Add types for currency formatting functions
   - Type Supabase client properly
-- [ ] `src/lib/logger.js` → `src/lib/logger.ts`
-  - Add interfaces for log entries
-- [ ] `src/lib/playerUtils.js` → `src/lib/playerUtils.ts`
-  - Add Player, Team, Tournament interfaces
 
 ### Phase 3: Convert Context (Medium Risk)
 - [ ] `src/context/AuthContext.jsx` → `src/context/AuthContext.tsx`
@@ -47,7 +43,6 @@ Convert pages one at a time, testing thoroughly:
 - [ ] `src/pages/Login.jsx` → `src/pages/Login.tsx`
 - [ ] `src/pages/Signup.jsx` → `src/pages/Signup.tsx`
 - [ ] `src/pages/Tournaments.jsx` → `src/pages/Tournaments.tsx`
-- [ ] `src/pages/Dashboard.jsx` → `src/pages/Dashboard.tsx`
 - [ ] `src/pages/TournamentDashboard.jsx` → `src/pages/TournamentDashboard.tsx`
 - [ ] `src/pages/TournamentTeams.jsx` → `src/pages/TournamentTeams.tsx`
 - [ ] `src/pages/TournamentPlayers.jsx` → `src/pages/TournamentPlayers.tsx`

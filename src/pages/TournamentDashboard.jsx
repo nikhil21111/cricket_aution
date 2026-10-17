@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase, formatShortCurrency, syncTournamentCounts } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import AddTeamForm from "../components/AddTeamForm";
 import AddPlayerForm from "../components/AddPlayerForm";
-import { formatShortCurrency } from "../lib/supabase";
 import toast from "react-hot-toast";
 
 const TournamentDashboard = () => {
@@ -142,21 +141,14 @@ const TournamentDashboard = () => {
     if (data) setAuctionState(data);
   };
 
-  const updateTournamentCounts = async () => {
-    await supabase
-      .from("tournaments")
-      .update({
-        teams_count: teams.length,
-        players_count: players.length,
-      })
-      .eq("id", tournamentId);
-  };
-
   useEffect(() => {
-    if (tournament && (teams.length > 0 || players.length > 0)) {
-      updateTournamentCounts();
+    // Sync counts once data has loaded and on every team/player change,
+    // including back down to 0 after deletions (the old >0 guard never let
+    // counts return to zero, and the real DB has no triggers to fix drift).
+    if (!loading && tournament) {
+      syncTournamentCounts(tournamentId, teams.length, players.length);
     }
-  }, [teams.length, players.length]);
+  }, [loading, tournament, teams.length, players.length, tournamentId]);
 
   const copyPublicLink = async () => {
     const url = `${window.location.origin}/live/${tournamentId}`;

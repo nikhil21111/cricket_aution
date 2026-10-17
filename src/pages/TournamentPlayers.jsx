@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase, formatShortCurrency, uploadImage } from "../lib/supabase";
+import { supabase, formatShortCurrency, uploadImage, syncTournamentCounts } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
@@ -213,6 +213,15 @@ const TournamentPlayers = () => {
       return cleanup;
     }
   }, [tournamentId]);
+
+  useEffect(() => {
+    // Keep tournaments.teams_count / players_count in sync from this page
+    // too — bulk imports and inline edits here previously left the counts
+    // stale until the dashboard was visited.
+    if (!loading && tournament) {
+      syncTournamentCounts(tournamentId, teams.length, players.length);
+    }
+  }, [loading, tournament, teams.length, players.length, tournamentId]);
 
   const setupSubscriptions = () => {
     const playersSubscription = supabase

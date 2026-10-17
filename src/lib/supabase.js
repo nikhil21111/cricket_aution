@@ -373,6 +373,26 @@ if (useMock) {
 
 export const supabase = supabaseClient;
 
+// Keep tournaments.teams_count / players_count in sync after team/player
+// mutations. The real database has no triggers for this, so the client
+// writes the counts whenever a page with fresh team/player data loads.
+export const syncTournamentCounts = async (
+  tournamentId,
+  teamsCount,
+  playersCount
+) => {
+  if (!tournamentId) return;
+  try {
+    const { error } = await supabase
+      .from("tournaments")
+      .update({ teams_count: teamsCount, players_count: playersCount })
+      .eq("id", tournamentId);
+    if (error) throw error;
+  } catch (e) {
+    console.error("Failed to sync tournament counts:", e);
+  }
+};
+
 // Helper to upload image to Supabase Storage
 export const uploadImage = async (bucket, file) => {
   const fileExt = file.name.split(".").pop();

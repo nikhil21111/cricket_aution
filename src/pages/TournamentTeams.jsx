@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase, formatShortCurrency, uploadImage } from "../lib/supabase";
+import { supabase, formatShortCurrency, uploadImage, syncTournamentCounts } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Modal from "../components/Modal";
@@ -122,6 +122,15 @@ const TournamentTeams = () => {
     }
   }, [tournamentId]);
 
+  useEffect(() => {
+    // Keep tournaments.teams_count / players_count in sync from this page
+    // too — mutations here (add/edit/bulk import/delete) previously left the
+    // counts stale until the dashboard was visited.
+    if (!loading && tournament) {
+      syncTournamentCounts(tournamentId, teams.length, players.length);
+    }
+  }, [loading, tournament, teams.length, players.length, tournamentId]);
+
   const fetchData = async () => {
     setLoading(true);
     await Promise.all([fetchTournament(), fetchTeams(), fetchPlayers()]);
@@ -174,6 +183,24 @@ const TournamentTeams = () => {
         .from("players")
         .update({ team_id: null, status: "available", sold_price: null })
         .eq("team_id", teamId);
+
+      // If the deleted team is the current highest bidder, clear the bid so
+      // auction_state doesn't keep a dangling reference to a removed team.
+      const { data: stateRow } = await supabase
+        .from("auction_state")
+        .select("highest_bidder_id")
+        .eq("tournament_id", tournamentId)
+        .single();
+      if (stateRow?.highest_bidder_id === teamId) {
+        await supabase
+          .from("auction_state")
+          .update({
+            highest_bidder_id: null,
+            highest_bid: 0,
+            bid_history: null,
+          })
+          .eq("tournament_id", tournamentId);
+      }
 
       // Then delete the team
       const { error } = await supabase.from("teams").delete().eq("id", teamId);

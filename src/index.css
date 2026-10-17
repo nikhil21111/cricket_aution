@@ -366,6 +366,87 @@
   color: #f59e0b;
 }
 
+/* Celebration card skip/close actions — lets the organizer dismiss the
+   overlay immediately instead of waiting out the 5s/3.2s auto-dismiss. */
+.sold-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.sold-card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 0px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sold-card-action-btn--primary {
+  background-color: #10b981;
+  color: #000000;
+  border: 2px solid #0f172a;
+  box-shadow: 3px 3px 0px #0f172a;
+}
+
+.sold-card-action-btn--primary:hover {
+  background-color: #059669;
+}
+
+.sold-card-action-btn--primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #0f172a;
+}
+
+.sold-card-action-btn--primary.unsold {
+  background-color: #f59e0b;
+}
+
+.sold-card-action-btn--primary.unsold:hover {
+  background-color: #d97706;
+}
+
+.dark .sold-card-action-btn--primary {
+  border-color: #f8fafc;
+  box-shadow: 3px 3px 0px #f8fafc;
+}
+
+.sold-card-action-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sold-card-action-btn--ghost {
+  background-color: transparent;
+  color: #475569;
+  border: 2px solid #cbd5e1;
+}
+
+.sold-card-action-btn--ghost:hover {
+  border-color: #0f172a;
+  color: #0f172a;
+}
+
+.dark .sold-card-action-btn--ghost {
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark .sold-card-action-btn--ghost:hover {
+  border-color: #f8fafc;
+  color: #f8fafc;
+}
+
 /* Mobile responsive styles for celebration card */
 @media (max-width: 640px) {
   .sold-card {
