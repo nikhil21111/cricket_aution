@@ -1,0 +1,12 @@
+# Netlify configuration — Cricket Auction Pro (doosra)
+# SPA routing: every path serves index.html so React Router handles it.
+# Without this, refreshing /tournament/:id or /live/:id returns a 404.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
